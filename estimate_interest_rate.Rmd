@@ -1,0 +1,31 @@
+---
+title: "Group X - Estimate interest rate"
+author: "L. Becker, A. Chebatarova, A. Kandel, A.Kusche, R. Mizrak"
+date: 'Sys.Date()'
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Initialization
+
+```{r initialization, message=FALSE, warning=FALSE, results="hide"}
+rm(list=(ls()))
+
+library(Metrics)
+library(corrplot)
+library(randomForest)
+library(rmarkdown)
+library(foreach)
+library(plyr)
+library(doMC)
+registerDoMC(4)
+
+#library(tidyverse)
+#library(doParallel)  
+#registerDoParallel()
+```
