@@ -31,3 +31,41 @@ registerDoMC(4)
 #library(doParallel)  
 #registerDoParallel()
 ```
+
+```{r Data Loading}
+loan_df <- read.csv(file = "loan.csv", header = TRUE)
+loan_df <- cbind(id_2 = rownames(loan_df), loan_df)
+rownames(loan_df) <- 1:nrow(loan_df)
+loan_df$id_2 <- as.numeric(loan_df$id_2)
+dataset_7 <- loan_df[which(loan_df$id_2%%8+1== 7),]
+attach(dataset_7)
+```
+
+```{r Data Exploration - lm}
+
+# lmp.fit=lm(int_rate~.,data=subset(dataset_7, select= c(-url,)))
+# summary(lmp.fit)
+```
+
+```{r Data Exploration - interest rate vs loan amount}
+# plotting the loan amount vs the interest rate
+plot(loan_amnt ,int_rate)
+# from this visualisation we can't see any clear correlation.
+
+plot(int_rate, loan_amnt)
+
+```
+
+```{r Data Exploration - interest rate vs term}
+# plotting the loan amount vs the term
+
+plot(term, int_rate)
+# Here we can see that the interest rate is generaly higher for 60 months loans and lower for 36 months loans.
+```
+
+```{r Data Exploration - interest rate vs home ownership}
+# plotting the loan amount vs home ownership
+
+plot(home_ownership, int_rate)
+# Here we can see that the interest rate is generaly higher for 60 months loans and lower for 36 months loans.
+```
