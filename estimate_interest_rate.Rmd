@@ -42,7 +42,11 @@ attach(dataset_7)
 ```
 
 ```{r validation set approach}
-
+# setting a seed for reproducability
+set.seed(7)
+# We randomly split our datafram in a train and test set
+trainRows = sample(1:nrow(dataset_7),0.5*nrow(dataset_7))
+testRows = nrow(dataset_7) - trainRows
 
 ```
 
@@ -89,7 +93,6 @@ plot(home_ownership, int_rate)
 # plotting the loan amount vs verification_status
 
 plot(verification_status, int_rate)
-# 
-. 
+# The verification_status seems to also have an influence on the interest rate.
 
 ```
