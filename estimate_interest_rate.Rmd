@@ -25,19 +25,42 @@ library(rmarkdown)
 library(foreach)
 library(plyr)
 library(doMC)
-registerDoMC(4)
+library(tidyverse)
+library(magrittr)
+# registerDoMC(4)
 
-#library(tidyverse)
-#library(doParallel)  
-#registerDoParallel()
+# library(doParallel)  
+# registerDoParallel()
 ```
 
-```{r Data Loading}
-loan_df <- read.csv(file = "loan.csv", header = TRUE)
-loan_df <- cbind(id_2 = rownames(loan_df), loan_df)
-rownames(loan_df) <- 1:nrow(loan_df)
-loan_df$id_2 <- as.numeric(loan_df$id_2)
-dataset_7 <- loan_df[which(loan_df$id_2%%8+1== 7),]
+<!-- ```{r Data Loading} -->
+<!-- # we load the loan file and select lineitems that fit our group number 7 -->
+<!-- # we might move this somewhere else and use only the prepared csv as this is time consuming -->
+
+<!-- loan_df <- read.csv(file = "loan.csv", header = TRUE) -->
+<!-- loan_df <- cbind(id_2 = rownames(loan_df), loan_df) -->
+<!-- rownames(loan_df) <- 1:nrow(loan_df) -->
+<!-- loan_df$id_2 <- as.numeric(loan_df$id_2) -->
+<!-- dataset_7 <- loan_df[which(loan_df$id_2%%8+1== 7),] -->
+<!-- ``` -->
+
+<!-- ```{r Year filtering} -->
+<!-- # don't think this is needed though -->
+<!-- dataset_7 %<>% -->
+<!--   mutate(year_temp = as.integer(str_sub(issue_d,-4,-1))) %>% -->
+<!--   filter(year_temp >= 2007, -->
+<!--          year_temp <= 2015) -->
+<!-- ``` -->
+
+<!-- ```{r Saving dataset as csv} -->
+
+<!-- # Write CSV in R -->
+
+<!-- # saveRDS(dataset_7, file = "dataset_7.Rds") -->
+<!-- ``` -->
+
+```{r loading Rds file}
+dataset_7 <- read_rds("dataset_7.Rds")
 attach(dataset_7)
 ```
 
