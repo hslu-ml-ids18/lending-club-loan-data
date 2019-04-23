@@ -73,10 +73,20 @@ testRows = nrow(dataset_7) - trainRows
 
 ```
 
-```{r Data Exploration - lm}
+```{r Data Preparation Regression}
+# Given we want to do a regression analysis we want to change boolean string values to numeric ones.
 
-# lmp.fit=lm(int_rate~.,data=dataset_7)
-# summary(lmp.fit)
+
+```
+
+```{r Data Exploration - lm}
+# lmp.fit=lm(int_rate~., data=subset(dataset_7, select=c(-id,-member_id, -url)))
+# if we want to use lm(int_rate~.,data=dataset_7)
+# We need to modify our dataframe to avoid this error.
+# Error in `contrasts<-`(`*tmp*`, value = contr.funs[1 + isOF[nn]]) : 
+#   contrasts can be applied only to factors with 2 or more levels
+lmp.fit=lm(int_rate~loan_amnt+loan_status+term+home_ownership+verification_status+grade+pymnt_plan,data=dataset_7)
+summary(lmp.fit)
 ```
 
 ```{r Data Exploration - interest rate vs loan amount}
