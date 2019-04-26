@@ -18,15 +18,17 @@ rm(list=(ls()))
 
 # Loading required packages
 
-library(Metrics)
+# library(Metrics)
 library(corrplot)
 library(randomForest)
 library(rmarkdown)
 library(foreach)
 library(plyr)
-library(doMC)
+# library(doMC)
 library(tidyverse)
 library(magrittr)
+library(data.table)
+library(dplyr)
 # registerDoMC(4)
 
 # library(doParallel)  
@@ -44,43 +46,75 @@ library(magrittr)
 <!-- dataset_7 <- loan_df[which(loan_df$id_2%%8+1== 7),] -->
 <!-- ``` -->
 
-<!-- ```{r Year filtering} -->
-<!-- # don't think this is needed though -->
-<!-- dataset_7 %<>% -->
-<!--   mutate(year_temp = as.integer(str_sub(issue_d,-4,-1))) %>% -->
-<!--   filter(year_temp >= 2007, -->
-<!--          year_temp <= 2015) -->
-<!-- ``` -->
+<!-- ```{r Saving dataset as rds} -->
 
-<!-- ```{r Saving dataset as csv} -->
-
-<!-- # Write CSV in R -->
+<!-- # Write RDS in R -->
 
 <!-- # saveRDS(dataset_7, file = "dataset_7.Rds") -->
 <!-- ``` -->
 
 ```{r loading Rds file}
 dataset_7 <- read_rds("dataset_7.Rds")
-attach(dataset_7)
+```
+
+```{r Data Preparation NAs removal}
+# Given we want to do a regression analysis we want to change boolean string values to numeric ones.
+# Omiting columns that only have NAs, ie. id and member_id.
+dataset <- dataset_7[,colSums(is.na(dataset_7))<nrow(dataset_7)]
+
+# changing the dataset as a tbl object.
+dataset <- as.tbl(dataset)
+# change NAs to 0 in integer columns
+dataset <- mutate_if(dataset, is.integer, ~replace(., is.na(.), 0))
+# change NAs to 0 in doubles columns
+
+dataset <- mutate_if(dataset, is.numeric, ~replace(., is.na(.), 0))
+# change NAs to 0 in strings columns
+
+dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), 0))
+
+# calculating the number of unique levels per column
+sapply(dataset, function(col) length(unique(col)))
+
+#removing dataset_7
+rm(dataset_7)
+
+# changing emp_title from integer to string
+emp_title <- toString(emp_title)
+
+# changing emp_title "" values to "unknown"
+emp_title[emp_title == ""] <- "Unknown"
+
+# attaching the cleaned dataset
+attach(dataset)
+
 ```
 
 ```{r validation set approach}
 # setting a seed for reproducability
 set.seed(7)
-# We randomly split our datafram in a train and test set
-trainRows = sample(1:nrow(dataset_7),0.5*nrow(dataset_7))
-testRows = nrow(dataset_7) - trainRows
+# We randomly split our dataframe in a train and test set
+trainRows = sample(1:nrow(dataset),0.5*nrow(dataset))
+testRows = nrow(dataset) - trainRows
 
 ```
 
-```{r Data Preparation Regression}
-# Given we want to do a regression analysis we want to change boolean string values to numeric ones.
+<!-- ```{r} -->
+<!-- # we can probably remove the 2 below lines -->
+<!-- lm_func <- function(y) lm(int_rate ~., data = dataset) -->
+<!-- lapply(dataset, lm_func) -->
+<!-- ``` -->
 
-
-```
 
 ```{r Data Exploration - lm}
-# lmp.fit=lm(int_rate~., data=subset(dataset_7, select=c(-id,-member_id, -url)))
+# idealy we would do an lm on the whole dataset like this:
+# lmp.fit=lm(int_rate~.,data = dataset)
+# but we run into not enough levels error.
+# the below lm works, by manualy removing the colums that R see as only having 1 level
+# this means we still need to do some data cleaning with these factors.
+# -total_rec_late_fee, has multiple level but are basically all around 0
+
+lmp.fit=lm(int_rate~., data=subset(dataset, select=c(-emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date)), na.action = na.exclude)
 # if we want to use lm(int_rate~.,data=dataset_7)
 # We need to modify our dataframe to avoid this error.
 # Error in `contrasts<-`(`*tmp*`, value = contr.funs[1 + isOF[nn]]) : 
@@ -126,6 +160,14 @@ plot(home_ownership, int_rate)
 # plotting the loan amount vs verification_status
 
 plot(verification_status, int_rate)
+# The verification_status seems to also have an influence on the interest rate.
+
+```
+
+```{r Data Exploration - interest rate vs emp_title}
+# plotting the loan amount vs verification_status
+
+plot(emp_title, int_rate)
 # The verification_status seems to also have an influence on the interest rate.
 
 ```
