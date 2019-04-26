@@ -119,7 +119,7 @@ lmp.fit=lm(int_rate~., data=subset(dataset, select=c(-emp_title, -hardship_type,
 # We need to modify our dataframe to avoid this error.
 # Error in `contrasts<-`(`*tmp*`, value = contr.funs[1 + isOF[nn]]) : 
 #   contrasts can be applied only to factors with 2 or more levels
-lmp.fit=lm(int_rate~loan_amnt+loan_status+term+home_ownership+verification_status+grade+pymnt_plan,data=dataset_7)
+
 summary(lmp.fit)
 ```
 
