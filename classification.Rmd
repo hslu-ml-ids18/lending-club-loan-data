@@ -21,12 +21,14 @@ classification_trainRows = nrow(concluded_loans) - classification_trainRows
 
 ```
 
-```{r validation set approach}
+```{r change loan_status to defaulted}
 levels(concluded_loans$loan_status)
 # For the remaining observations, check if the loan_status is “Fully Paid”. If not, change
 # the value of loan_status to “DEFAULTED”.
 
-# My understanding is that we need to change all the values 
+# My understanding is that we need to change all the values but "Fully Paid" to "Default"
+
+concluded_loans$loan_status[concluded_loans$loan_status != "Fully Paid"] <- "Default"
 
 
 ```
