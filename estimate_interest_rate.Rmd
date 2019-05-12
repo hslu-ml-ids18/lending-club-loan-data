@@ -85,9 +85,26 @@ emp_title <- toString(emp_title)
 # changing emp_title "" values to "unknown"
 emp_title[emp_title == ""] <- "Unknown"
 
-# attaching the cleaned dataset
-attach(dataset)
+# # attaching the cleaned dataset
+# attach(dataset)
 
+```
+
+```{r Data Cleaning emp_title}
+# changing emp_title to a factor
+dataset$emp_title <- as.vector(dataset$emp_title)
+# Replacing empting values in emp_title to 'No Title'
+dataset$emp_title <- sub("^$", "No Title", dataset$emp_title)
+
+```
+
+```{r Data Cleaning hardship_type}
+# changing emp_title type
+dataset$hardship_type <- as.character(dataset$hardship_type)
+# Replacing empting values in hardship_type to '0'
+dataset$hardship_type <- sub("No deferral", "0", dataset$hardship_type)
+# Replacing '' values in hardship_type to '0'
+dataset$hardship_type <- sub("INTEREST ONLY-3 MONTHS DEFERRAL", "1", dataset$hardship_type)
 ```
 
 ```{r validation set approach}
@@ -121,6 +138,28 @@ lmp.fit=lm(int_rate~., data=subset(dataset, select=c(-emp_title, -hardship_type,
 #   contrasts can be applied only to factors with 2 or more levels
 
 summary(lmp.fit)
+```
+```{r stepwise model}
+# should we use a gaussian model here?
+null_model <- glm(int_rate ~ 1, data = dataset, family = "gaussian")
+
+# Specify the partial model using a subset of the potential predictors
+partial_model <- glm(int_rate ~ ., data=subset(dataset, select=c(-emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date)), family = "gaussian")
+# 
+# # This is taking too much time to process, stoped this at the 12th perdictor.
+# # Use a forward stepwise algorithm to build a parsimonious model
+# step_model <- step(null_model, scope = list(lower = null_model, upper = partial_model), direction = "forward")
+# #  int_rate ~ sub_grade + all_util + loan_status + total_pymnt + installment + initial_list_status + total_pymnt_inv + verification_status + loan_amnt + term + out_prncp_inv + inq_fi
+# 
+
+# Estimate the stepwise probability
+step_prob <- predict(step_model, type = "response")
+
+# Plot the ROC of the stepwise model
+library(pROC)
+ROC <- roc(dataset$int_rate, step_prob)
+plot(ROC, col = "red")
+auc(ROC)
 ```
 
 ```{r Data Exploration - interest rate vs loan amount}
