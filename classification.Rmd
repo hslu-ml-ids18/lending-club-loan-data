@@ -1,34 +1,94 @@
 ---
-title: "Classification"
-author: "Lisa Beck, Anastasiia Chebatarova, Axel Kandel"
-date: "5/12/2019"
-output: html_document
+title: "Group 7 - Classification model for the default status"
+author: "L. Becker, A. Chebatarova, A. Kandel, A.Kusche, R. Mizrak"
+date: 'Sys.Date()'
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
 
-```{r concluded loans}
-# filter out all observations with loan_status == Current
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Initialization
 
-concluded_loans <- subset(dataset, loan_status != 'Current')
+```{r initialization, message=FALSE, warning=FALSE, results="hide"}
+rm(list=(ls()))
+
+# Loading required packages
+pacman::p_load(data.table, rmarkdown, tidyverse, caret, pls)
+
+```{r loading Rds file}
+dataset <- readRDS("dataset_7.Rds")
+```
+
+```{r preprocessing, cleansing, inputation}
+dataset <- dataset[,colSums(is.na(dataset))<nrow(dataset)]
+setDT(dataset)
+```
+
+
+```{r concluded loans}
+# filter out all observations with loan_status == Current & check loan_status
+dataset <- dataset[loan_status != 'Current']
+dataset$loan_status[dataset$loan_status != "Fully Paid"] <- "Default"
 
 ```
 
 ```{r validation set approach}
 # setting a seed for reproducability
 set.seed(7)
-# We randomly split our dataframe in a train and test set
-classification_trainRows = sample(1:nrow(concluded_loans),0.5*nrow(concluded_loans))
-classification_trainRows = nrow(concluded_loans) - classification_trainRows
+
+# random split into  train and test set, with a ratio of 20:80
+trainIndex <- sample(1:nrow(dataset),0.01*nrow(dataset))
+
+train.data <- dataset[trainIndex]
+test.data  <- dataset[-trainIndex]
 
 ```
 
-```{r change loan_status to defaulted}
-levels(concluded_loans$loan_status)
-# For the remaining observations, check if the loan_status is “Fully Paid”. If not, change
-# the value of loan_status to “DEFAULTED”.
+Use Principal Component Analysis for base transformation and then compare it with the Partial Least Squares Regression result. Select the best base with cross validation, using the better of the two approaches. 
+-> http://www.sthda.com/english/articles/37-model-selection-essentials-in-r/152-principal-component-and-partial-least-squares-regression-essentials/
+-> https://www.datacamp.com/community/tutorials/pca-analysis-r
+```{r }
+train.pca <- prcomp(train.data[,c(1,2,3,4)], center = TRUE,scale. = TRUE)
 
-# My understanding is that we need to change all the values but "Fully Paid" to "Default"
+summary(train.pca)
 
-concluded_loans$loan_status[concluded_loans$loan_status != "Fully Paid"] <- "Default"
+# Build the model on training set
+
+model <- train(
+  loan_status~., data = train.data, method = "pcr",
+  scale = TRUE,
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 10
+  )
+# Plot model RMSE vs different values of components
+plot(model)
+# Print the best tuning parameter ncomp that
+# minimize the cross-validation error, RMSE
+model$bestTune
 
 
 ```
+
+Perform the classification using KNN, Logistic Regression, Decision tree and Random forest.
+```{r }
+
+```
+
+Compare the respective train and test error performances to select one of these approaches.
+```{r }
+
+```
+
+Perform the prediction on the validation set and compute the confusion matrix.
+```{r }
+
+```
+
+Conceptually compare your approach with a solution existing for this problem. (Default
+prediction is a very well-known problem in literature).
+```{r }
+
