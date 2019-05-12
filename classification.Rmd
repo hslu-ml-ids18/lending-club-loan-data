@@ -1,0 +1,14 @@
+---
+title: "Classification"
+author: "Lisa Beck, Anastasiia Chebatarova, Axel Kandel"
+date: "5/12/2019"
+output: html_document
+---
+
+```{r concluded loans}
+# filter out all observations with loan_status == Current
+
+concluded_loans <- subset(dataset, loan_status != 'Current')
+
+```
+
