@@ -17,6 +17,16 @@ concluded_loans <- subset(dataset, loan_status != 'Current')
 set.seed(7)
 # We randomly split our dataframe in a train and test set
 classification_trainRows = sample(1:nrow(concluded_loans),0.5*nrow(concluded_loans))
-classification_trainRows = nrow(concluded_loans) - trainRows
+classification_trainRows = nrow(concluded_loans) - classification_trainRows
+
+```
+
+```{r validation set approach}
+levels(concluded_loans$loan_status)
+# For the remaining observations, check if the loan_status is “Fully Paid”. If not, change
+# the value of loan_status to “DEFAULTED”.
+
+# My understanding is that we need to change all the values 
+
 
 ```
