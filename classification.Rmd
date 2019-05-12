@@ -12,3 +12,11 @@ concluded_loans <- subset(dataset, loan_status != 'Current')
 
 ```
 
+```{r validation set approach}
+# setting a seed for reproducability
+set.seed(7)
+# We randomly split our dataframe in a train and test set
+classification_trainRows = sample(1:nrow(concluded_loans),0.5*nrow(concluded_loans))
+classification_trainRows = nrow(concluded_loans) - trainRows
+
+```
