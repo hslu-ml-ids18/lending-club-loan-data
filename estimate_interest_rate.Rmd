@@ -93,6 +93,7 @@ emp_title[emp_title == ""] <- "Unknown"
 
 <!-- ```{r removing column that have many NAs} -->
 <!-- # from ILIAS FROM "New dataset version - issue with mainly NA predictors" -->
+<!-- dataset <- as_tibble(dataset) -->
 <!-- newdataset <- dataset[lapply(dataset , function(x) sum(is.na(x)) / length(x) ) < 0.05 ] %>% as_tibble() -->
 
 <!-- ``` -->
