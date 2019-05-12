@@ -29,6 +29,7 @@ library(tidyverse)
 library(magrittr)
 library(data.table)
 library(dplyr)
+library(tibble)
 # registerDoMC(4)
 
 # library(doParallel)  
@@ -89,6 +90,12 @@ emp_title[emp_title == ""] <- "Unknown"
 # attach(dataset)
 
 ```
+
+<!-- ```{r removing column that have many NAs} -->
+<!-- # from ILIAS FROM "New dataset version - issue with mainly NA predictors" -->
+<!-- newdataset <- dataset[lapply(dataset , function(x) sum(is.na(x)) / length(x) ) < 0.05 ] %>% as_tibble() -->
+
+<!-- ``` -->
 
 ```{r Data Cleaning emp_title}
 # changing emp_title to a factor
