@@ -1,6 +1,6 @@
 ---
 title: "Classification"
-author: "Lisa Beck, Anastasiia Chebatarova, Axel Kandel"
+author: "L. Becker, A. Chebatarova, A. Kandel, A.Kusche, R. Mizrak"
 date: "5/12/2019"
 output: html_document
 ---
