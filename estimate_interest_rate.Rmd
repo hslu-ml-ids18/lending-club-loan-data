@@ -16,24 +16,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r initialization, message=FALSE, warning=FALSE, results="hide"}
 rm(list=(ls()))
 
-# Loading required packages
+# Loading required packages with library pacman
+pacman::p_load(corrplot, randomForest, rmarkdown, foreach, plyr, tidyverse, magrittr, data.table, dplyr, tibble)
 
-# library(Metrics)
-library(corrplot)
-library(randomForest)
-library(rmarkdown)
-library(foreach)
-library(plyr)
-# library(doMC)
-library(tidyverse)
-library(magrittr)
-library(data.table)
-library(dplyr)
-library(tibble)
-# registerDoMC(4)
-
-# library(doParallel)  
-# registerDoParallel()
 ```
 
 
