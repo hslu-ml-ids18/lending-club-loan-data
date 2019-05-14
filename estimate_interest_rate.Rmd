@@ -17,7 +17,9 @@ knitr::opts_chunk$set(echo = TRUE)
 rm(list=(ls()))
 
 # Loading required packages with library pacman
-pacman::p_load(corrplot, randomForest, rmarkdown, foreach, plyr, tidyverse, magrittr, data.table, dplyr, tibble)
+pacman::p_load(corrplot, randomForest, rmarkdown, foreach, plyr, tidyverse, magrittr, data.table, dplyr, tibble, foreach, doMC)
+#Register 4 Cores
+registerDoMC(4)
 ```
 
 
@@ -79,8 +81,11 @@ auc(ROC)
 
 ```{r Random Forest}
 
-int_rate_RF <- randomForest(int_rate ~. , data=subset(dataset, select=c(-emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date)) , subset =  trainRows, importance=TRUE, do.trace = TRUE)
+int_rate_RF <-  foreach(ntree=rep(125, 4), .combine=combine, .packages='randomForest') %dopar% {
 
+int_rate_RF <- randomForest(int_rate ~. , data=subset(dataset, select=c(-emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date)) , subset =  trainRows, importance=TRUE, do.trace = TRUE, ntree=ntree)
+
+ }
 ```
 
 ```{r Data Exploration - interest rate vs loan amount}
