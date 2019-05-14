@@ -18,7 +18,6 @@ rm(list=(ls()))
 
 # Loading required packages with library pacman
 pacman::p_load(corrplot, randomForest, rmarkdown, foreach, plyr, tidyverse, magrittr, data.table, dplyr, tibble)
-
 ```
 
 
@@ -54,6 +53,7 @@ lmp.fit=lm(int_rate~., data=subset(dataset, select=c(-emp_title, -hardship_type,
 
 summary(lmp.fit)
 ```
+
 ```{r stepwise model}
 # should we use a gaussian model here?
 null_model <- glm(int_rate ~ 1, data = dataset, family = "gaussian")
@@ -75,6 +75,12 @@ library(pROC)
 ROC <- roc(dataset$int_rate, step_prob)
 plot(ROC, col = "red")
 auc(ROC)
+```
+
+```{r Random Forest}
+
+int_rate_RF <- randomForest(int_rate ~. , data=subset(dataset, select=c(-emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date)) , subset =  trainRows, importance=TRUE, do.trace = TRUE)
+
 ```
 
 ```{r Data Exploration - interest rate vs loan amount}
