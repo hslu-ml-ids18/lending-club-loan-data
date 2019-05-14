@@ -28,6 +28,10 @@ set.seed(7)
 trainRows = sample(1:nrow(dataset),0.5*nrow(dataset))
 testRows = nrow(dataset) - trainRows
 
+# creating a small subset of data for testing models
+
+small_trainRows = sample(1:nrow(dataset),0.004*nrow(dataset))
+
 ```
 
 <!-- ```{r} -->
@@ -79,7 +83,9 @@ auc(ROC)
 
 ```{r Random Forest}
 
-int_rate_RF <- randomForest(int_rate ~. , data=subset(dataset, select=c(-emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date)) , subset =  trainRows, importance=TRUE, do.trace = TRUE)
+int_rate_RF <- randomForest(int_rate ~. , data=subset(dataset, select=c(-emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date)) , subset =  small_trainRows, importance=TRUE, do.trace = TRUE)
+
+importance(int_rate_RF)
 
 ```
 
