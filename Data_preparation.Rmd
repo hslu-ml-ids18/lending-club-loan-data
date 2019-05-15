@@ -21,8 +21,7 @@ dataset_7 <- loan_df[which(loan_df$id_2%%8+1== 7),]
 ```
 
 ```{r Saving dataset as rds}
-
-Write RDS in R
+# Write RDS in R
 
 saveRDS(dataset_7, file = "dataset_7.Rds")
 ```
@@ -48,20 +47,20 @@ dataset_7 <- dataset_7[, -which(colMeans(is.na(dataset_7)) > 0.05)]
 # Given we want to do a regression analysis we want to change boolean string values to numeric ones.
 # Omiting columns that only have NAs, ie. id and member_id.
 dataset <- dataset_7[,colSums(is.na(dataset_7))<nrow(dataset_7)]
-
-# changing the dataset as a tbl object.
-dataset <- as.tbl(dataset)
-# change NAs to 0 in integer columns
-dataset <- mutate_if(dataset, is.integer, ~replace(., is.na(.), 0))
-# change NAs to 0 in doubles columns
-
-dataset <- mutate_if(dataset, is.numeric, ~replace(., is.na(.), 0))
-# change NAs to 0 in strings columns
-
-dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), 0))
-
-# calculating the number of unique levels per column
-sapply(dataset, function(col) length(unique(col)))
+# 
+# # changing the dataset as a tbl object.
+# dataset <- as.tbl(dataset)
+# # change NAs to 0 in integer columns
+# dataset <- mutate_if(dataset, is.integer, ~replace(., is.na(.), 0))
+# # change NAs to 0 in doubles columns
+# 
+# dataset <- mutate_if(dataset, is.numeric, ~replace(., is.na(.), 0))
+# # change NAs to 0 in strings columns
+# 
+# dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), 0))
+# 
+# # calculating the number of unique levels per column
+# sapply(dataset, function(col) length(unique(col)))
 
 #removing dataset_7
 rm(dataset_7)
@@ -89,16 +88,16 @@ dataset <- subset(dataset, select = -c(desc, emp_title, issue_d, title, zip_code
 # sub_grade has more than 32 levels which is a hard limit for random forest.
 # We'll dummy code it to circument this
 levels_sub_grade <- levels(dataset$sub_grade)
-dataset$sub_grade<- mapvalues(dataset$sub_grade, levels_sub_grade, seq(from = 1, to = 35, by = 1))
+dataset$sub_grade<- as.numeric(mapvalues(dataset$sub_grade, levels_sub_grade, seq(from = 1, to = 35, by = 1)))
 levels(dataset$sub_grade)
 ```
 
 ```{r Dummy coding emp_lenght}
 # s
 levels_emp_length <- levels(dataset$emp_length)
-dataset$emp_length_new <- ordered(dataset$emp_length, levels = c("n/a", "< 1 year", "1 year", "2 years", "3 years","4 years", "5 years","6 years", "7 years", "8 years", "9 years", "10+ years"))
-levels(dataset$emp_length_new)
-dataset$emp_length <- mapvalues(dataset$emp_length, levels_emp_length, seq(from = -1, to = 10, by = 1))
+dataset$emp_length <- ordered(dataset$emp_length, levels = c("n/a", "< 1 year", "1 year", "2 years", "3 years","4 years", "5 years","6 years", "7 years", "8 years", "9 years", "10+ years"))
+levels(dataset$emp_length)
+dataset$emp_length <- as.numeric(mapvalues(dataset$emp_length, levels_emp_length, seq(from = -1, to = 10, by = 1)))
 levels(dataset$emp_length)
 
 ```
@@ -109,15 +108,28 @@ levels(dataset$emp_length)
 <!-- ``` -->
 
 
-```{r Data Cleaning hardship_type}
-# changing emp_title type
-dataset$hardship_type <- as.character(dataset$hardship_type)
-# Replacing empting values in hardship_type to '0'
-dataset$hardship_type <- sub("No deferral", "0", dataset$hardship_type)
-# Replacing '' values in hardship_type to '0'
-dataset$hardship_type <- sub("INTEREST ONLY-3 MONTHS DEFERRAL", "1", dataset$hardship_type)
+<!-- ```{r Data Cleaning hardship_type} -->
+<!-- # changing emp_title type -->
+<!-- dataset$hardship_type <- as.character(dataset$hardship_type) -->
+<!-- # Replacing empting values in hardship_type to '0' -->
+<!-- dataset$hardship_type <- sub("No deferral", "0", dataset$hardship_type) -->
+<!-- # Replacing '' values in hardship_type to '0' -->
+<!-- dataset$hardship_type <- sub("INTEREST ONLY-3 MONTHS DEFERRAL", "1", dataset$hardship_type) -->
+<!-- ``` -->
+
+<!-- ```{r total_rec_late_fee} -->
+<!-- levels(total_rec_late_fee) -->
+<!-- ``` -->
+
+```{r Dummy coding earliest_cr_line}
+# grouping earliest_cr_line by year
+dataset$earliest_cr_line <- as.integer(substring(dataset$earliest_cr_line, 5))
 ```
 
-levels_emp_length
-
-
+```{r Dummy coding sec_app_earliest_cr_line}
+# grouping earliest_cr_line by year
+dataset$sec_app_earliest_cr_line <- as.integer(substring(as.character(dataset$sec_app_earliest_cr_line), 5))
+dataset$sec_app_earliest_cr_line[is.na(dataset$sec_app_earliest_cr_line)] <- 0
+typeof(dataset$sec_app_earliest_cr_line)
+levels(dataset$sec_app_earliest_cr_line)
+```
