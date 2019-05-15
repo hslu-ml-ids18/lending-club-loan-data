@@ -84,12 +84,30 @@ rm(dataset_7)
 # grade is remove as it's a covariance of sub_grade
 dataset <- subset(dataset, select = -c(desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
 ```
+
 ```{r Dummy coding sub_grade}
 # sub_grade has more than 32 levels which is a hard limit for random forest.
 # We'll dummy code it to circument this
 levels_sub_grade <- levels(dataset$sub_grade)
-dataset$sub_grade_new <- mapvalues(dataset$sub_grade, levels_sub_grade, seq(from = 1, to = 35, by = 1))
+dataset$sub_grade<- mapvalues(dataset$sub_grade, levels_sub_grade, seq(from = 1, to = 35, by = 1))
+levels(dataset$sub_grade)
 ```
+
+```{r Dummy coding emp_lenght}
+# s
+levels_emp_length <- levels(dataset$emp_length)
+dataset$emp_length_new <- ordered(dataset$emp_length, levels = c("n/a", "< 1 year", "1 year", "2 years", "3 years","4 years", "5 years","6 years", "7 years", "8 years", "9 years", "10+ years"))
+levels(dataset$emp_length_new)
+dataset$emp_length <- mapvalues(dataset$emp_length, levels_emp_length, seq(from = -1, to = 10, by = 1))
+levels(dataset$emp_length)
+
+```
+
+<!-- ```{r} -->
+<!-- # remove old emp_length, sub_grade -->
+<!-- dataset <- subset(dataset, select = -c(emp_length, sub_grade) ) -->
+<!-- ``` -->
+
 
 ```{r Data Cleaning hardship_type}
 # changing emp_title type
@@ -100,5 +118,6 @@ dataset$hardship_type <- sub("No deferral", "0", dataset$hardship_type)
 dataset$hardship_type <- sub("INTEREST ONLY-3 MONTHS DEFERRAL", "1", dataset$hardship_type)
 ```
 
+levels_emp_length
 
 
