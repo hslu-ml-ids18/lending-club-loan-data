@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 rm(list=(ls()))
 
 # Loading required packages with library pacman
-pacman::p_load(corrplot, randomForest, rmarkdown, foreach, plyr, tidyverse, magrittr, data.table, dplyr, tibble, caret foreach, doMC)
+pacman::p_load(corrplot, randomForest, rmarkdown, foreach, plyr, tidyverse, magrittr, data.table, dplyr, tibble, caret, foreach, doMC)
 #Register 4 Cores
 registerDoMC(4)
 ```
@@ -37,19 +37,9 @@ small_testRows = sample(nrow(dataset) - small_trainRows,0.004*nrow(dataset))
 ```
 
 ```{r Data Exploration - lm}
-# idealy we would do an lm on the whole dataset like this:
+# lm on the whole dataset
 
-lmp.fit=lm(int_rate~. ,data = dataset)
-# but we run into not enough levels error.
-# the below lm works, by manualy removing the colums that R see as only having 1 level
-# this means we still need to do some data cleaning with these factors.
-# -total_rec_late_fee, has multiple level but are basically all around 0
-
-lmp.fit=lm(int_rate~., data=subset(dataset, select=c(-id_2, -emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -debt_settlement_flag_date, -settlement_date, grade)), na.action = na.exclude)
-# if we want to use lm(int_rate~.,data=dataset_7)
-# We need to modify our dataframe to avoid this error.
-# Error in `contrasts<-`(`*tmp*`, value = contr.funs[1 + isOF[nn]]) :
-#   contrasts can be applied only to factors with 2 or more levels
+lmp.fit=lm(int_rate~.,data = dataset)
 
 summary(lmp.fit)
 ```
