@@ -9,26 +9,39 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-<!-- ```{r Data Loading} -->
-<!-- # we load the loan file and select lineitems that fit our group number 7 -->
-<!-- # we might move this somewhere else and use only the prepared csv as this is time consuming -->
+```{r Data Loading}
+# we load the loan file and select lineitems that fit our group number 7
+# we might move this somewhere else and use only the prepared csv as this is time consuming
 
-<!-- loan_df <- read.csv(file = "loan.csv", header = TRUE) -->
-<!-- loan_df <- cbind(id_2 = rownames(loan_df), loan_df) -->
-<!-- rownames(loan_df) <- 1:nrow(loan_df) -->
-<!-- loan_df$id_2 <- as.numeric(loan_df$id_2) -->
-<!-- dataset_7 <- loan_df[which(loan_df$id_2%%8+1== 7),] -->
-<!-- ``` -->
+loan_df <- read.csv(file = "loan.csv", header = TRUE)
+loan_df <- cbind(id_2 = rownames(loan_df), loan_df)
+rownames(loan_df) <- 1:nrow(loan_df)
+loan_df$id_2 <- as.numeric(loan_df$id_2)
+dataset_7 <- loan_df[which(loan_df$id_2%%8+1== 7),]
+```
 
-<!-- ```{r Saving dataset as rds} -->
+```{r Saving dataset as rds}
 
-<!-- # Write RDS in R -->
+Write RDS in R
 
-<!-- # saveRDS(dataset_7, file = "dataset_7.Rds") -->
-<!-- ``` -->
+saveRDS(dataset_7, file = "dataset_7.Rds")
+```
 
 ```{r loading Rds file}
-dataset_7 <- read_rds("dataset_7.Rds")
+dataset_7 <- readRDS("dataset_7.Rds")
+```
+
+<!-- ```{r exception to removing NAs colums} -->
+<!-- # total_rec_late_fee woould be removed because it has mostly NA's but I believe we should keep that one an dummy code it to 0 as it could be usefull for defaulting  -->
+<!-- summary(dataset_7$total_rec_late_fee) -->
+<!-- summary(dataset_7$recoveries) -->
+<!-- typeof(dataset_7$total_rec_late_fee) -->
+<!-- ``` -->
+
+```{r removing NAs columns}
+# Removing columns that have > 0.05 NAs
+dataset_7 <- dataset_7[, -which(colMeans(is.na(dataset_7)) > 0.05)]
+
 ```
 
 ```{r Data Preparation NAs removal}
@@ -53,30 +66,29 @@ sapply(dataset, function(col) length(unique(col)))
 #removing dataset_7
 rm(dataset_7)
 
-# changing emp_title from integer to string
-emp_title <- toString(emp_title)
-
-# changing emp_title "" values to "unknown"
-emp_title[emp_title == ""] <- "Unknown"
-
 # # attaching the cleaned dataset
 # attach(dataset)
 
 ```
 
-<!-- ```{r removing column that have many NAs} -->
-<!-- # from ILIAS FROM "New dataset version - issue with mainly NA predictors" -->
-<!-- dataset <- as_tibble(dataset) -->
-<!-- newdataset <- dataset[lapply(dataset , function(x) sum(is.na(x)) / length(x) ) < 0.05 ] %>% as_tibble() -->
+```{r removal of unwanted factors}
+# we remove desc as it is descrbing the purpose of the loan given it's unstructured data we can't do much about it.
+# Given we have a status column and date for all the factors that 
+# emp_title has too many levels to be used 
+# zip_code has too many levels and is a covariance of addr_state, thus we can remove it.
 
-<!-- ``` -->
+# Too keep: earliest_cr_line could be an interesting variable to dummy code, we could transform it to only hold the year and make it a numerical value. same is true for sec_app_earliest_cr_line
 
-```{r Data Cleaning emp_title}
-# changing emp_title to a factor
-dataset$emp_title <- as.vector(dataset$emp_title)
-# Replacing empting values in emp_title to 'No Title'
-dataset$emp_title <- sub("^$", "No Title", dataset$emp_title)
-
+# last_pymnt_d and next_pymnt_d will be removed
+# addr_state is remove as it's not significant
+# grade is remove as it's a covariance of sub_grade
+dataset <- subset(dataset, select = -c(desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
+```
+```{r Dummy coding sub_grade}
+# sub_grade has more than 32 levels which is a hard limit for random forest.
+# We'll dummy code it to circument this
+levels_sub_grade <- levels(dataset$sub_grade)
+dataset$sub_grade_new <- mapvalues(dataset$sub_grade, levels_sub_grade, seq(from = 1, to = 35, by = 1))
 ```
 
 ```{r Data Cleaning hardship_type}
@@ -87,3 +99,6 @@ dataset$hardship_type <- sub("No deferral", "0", dataset$hardship_type)
 # Replacing '' values in hardship_type to '0'
 dataset$hardship_type <- sub("INTEREST ONLY-3 MONTHS DEFERRAL", "1", dataset$hardship_type)
 ```
+
+
+
