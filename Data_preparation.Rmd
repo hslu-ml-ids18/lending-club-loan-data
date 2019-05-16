@@ -107,6 +107,48 @@ levels(dataset$emp_length)
 <!-- dataset <- subset(dataset, select = -c(emp_length, sub_grade) ) -->
 <!-- ``` -->
 
+<!-- ```{r Data Cleaning hardship_type} -->
+<!-- # changing emp_title type -->
+<!-- dataset$hardship_type <- as.character(dataset$hardship_type) -->
+<!-- # Replacing empting values in hardship_type to '0' -->
+<!-- dataset$hardship_type <- sub("No deferral", "0", dataset$hardship_type) -->
+<!-- # Replacing '' values in hardship_type to '0' -->
+<!-- dataset$hardship_type <- sub("INTEREST ONLY-3 MONTHS DEFERRAL", "1", dataset$hardship_type) -->
+<!-- ``` -->
+
+<!-- ```{r total_rec_late_fee} -->
+<!-- levels(total_rec_late_fee) -->
+<!-- ``` -->
+
+```{r Dummy coding earliest_cr_line}
+# grouping earliest_cr_line by year
+dataset$earliest_cr_line <- as.integer(substring(dataset$earliest_cr_line, 5))
+```
+
+```{r Dummy coding sec_app_earliest_cr_line}
+# grouping earliest_cr_line by year
+dataset$sec_app_earliest_cr_line <- as.integer(substring(as.character(dataset$sec_app_earliest_cr_line), 5))
+dataset$sec_app_earliest_cr_line[is.na(dataset$sec_app_earliest_cr_line)] <- 0
+typeof(dataset$sec_app_earliest_cr_line)
+levels(dataset$sec_app_earliest_cr_line)
+```
+
+```{r correlation matrix}
+
+# correlation matrix by p-value
+install.packages("Hmisc")
+library("Hmisc")
+corr.matrix<-rcorr(as.matrix(dataset), na.actions = na.omit)
+
+# correlogram combined with significance test <- only correlations that are relevant are shown in the plot
+install.packages("corrplot")
+library(corrplot)
+corrplot(corr.matrix, type="upper", order="hclust", 
+         sig.level = 0.01, insig = "blank")
+# still gives out na error<- how can we remove all nas to make it work?
+
+```
+
 
 <!-- ```{r Data Cleaning hardship_type} -->
 <!-- # changing emp_title type -->
@@ -120,6 +162,8 @@ levels(dataset$emp_length)
 ```{r total_rec_late_fee}
 levels(dataset$total_rec_late_fee)
 ```
+
+  
 
 ```{r Dummy coding earliest_cr_line}
 # grouping earliest_cr_line by year
