@@ -2,29 +2,43 @@
 title: "Data_Preparation"
 author: "L. Becker, A. Chebatarova, A. Kandel, A.Kusche, R. Mizrak"
 date: "5/13/2019"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+## Initialization
 
-```{r Data Loading}
-# we load the loan file and select lineitems that fit our group number 7
-# we might move this somewhere else and use only the prepared csv as this is time consuming
-
-loan_df <- read.csv(file = "loan.csv", header = TRUE)
-loan_df <- cbind(id_2 = rownames(loan_df), loan_df)
-rownames(loan_df) <- 1:nrow(loan_df)
-loan_df$id_2 <- as.numeric(loan_df$id_2)
-dataset_7 <- loan_df[which(loan_df$id_2%%8+1== 7),]
+```{r initialization, message=FALSE, warning=FALSE, results="hide"}
+rm(list=(ls()))
+# Loading required packages with library pacman
+pacman::p_load(rmarkdown, Hmisc, corrplot, plyr, dplyr)
+# install.packages("Hmisc")
+# library("Hmisc")
+# install.packages("corrplot")
+# library(corrplot)
+#Get information form R session
+sessionInfo()
 ```
+<!-- ```{r Data Loading} -->
+<!-- # we load the loan file and select lineitems that fit our group number 7 -->
+<!-- # we might move this somewhere else and use only the prepared csv as this is time consuming -->
 
-```{r Saving dataset as rds}
-# Write RDS in R
+<!-- loan_df <- read.csv(file = "loan.csv", header = TRUE) -->
+<!-- loan_df <- cbind(id_2 = rownames(loan_df), loan_df) -->
+<!-- rownames(loan_df) <- 1:nrow(loan_df) -->
+<!-- loan_df$id_2 <- as.numeric(loan_df$id_2) -->
+<!-- dataset_7 <- loan_df[which(loan_df$id_2%%8+1== 7),] -->
+<!-- ``` -->
 
-saveRDS(dataset_7, file = "dataset_7.Rds")
-```
+<!-- ```{r Saving dataset as rds} -->
+<!-- # Write RDS in R -->
+
+<!-- saveRDS(dataset_7, file = "dataset_7.Rds") -->
+<!-- ``` -->
 
 ```{r loading Rds file}
 dataset_7 <- readRDS("dataset_7.Rds")
@@ -42,31 +56,10 @@ dataset_7 <- readRDS("dataset_7.Rds")
 dataset_7 <- dataset_7[, -which(colMeans(is.na(dataset_7)) > 0.05)]
 
 ```
-
-```{r Data Preparation NAs removal}
+```{r NA columns removal}
 # Given we want to do a regression analysis we want to change boolean string values to numeric ones.
 # Omiting columns that only have NAs, ie. id and member_id.
 dataset <- dataset_7[,colSums(is.na(dataset_7))<nrow(dataset_7)]
-# 
-# # changing the dataset as a tbl object.
-# dataset <- as.tbl(dataset)
-# # change NAs to 0 in integer columns
-# dataset <- mutate_if(dataset, is.integer, ~replace(., is.na(.), 0))
-# # change NAs to 0 in doubles columns
-# 
-# dataset <- mutate_if(dataset, is.numeric, ~replace(., is.na(.), 0))
-# # change NAs to 0 in strings columns
-# 
-# dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), 0))
-# 
-# # calculating the number of unique levels per column
-# sapply(dataset, function(col) length(unique(col)))
-
-#removing dataset_7
-rm(dataset_7)
-
-# # attaching the cleaned dataset
-# attach(dataset)
 
 ```
 
@@ -97,7 +90,7 @@ levels(dataset$sub_grade)
 levels_emp_length <- levels(dataset$emp_length)
 dataset$emp_length <- ordered(dataset$emp_length, levels = c("n/a", "< 1 year", "1 year", "2 years", "3 years","4 years", "5 years","6 years", "7 years", "8 years", "9 years", "10+ years"))
 levels(dataset$emp_length)
-dataset$emp_length <- as.numeric(mapvalues(dataset$emp_length, levels_emp_length, seq(from = -1, to = 10, by = 1)))
+dataset$emp_length <- as.numeric(mapvalues(dataset$emp_length, levels_emp_length, c(-999, seq(from = 0, to = 10, by = 1))))
 levels(dataset$emp_length)
 
 ```
@@ -128,23 +121,62 @@ dataset$earliest_cr_line <- as.integer(substring(dataset$earliest_cr_line, 5))
 ```{r Dummy coding sec_app_earliest_cr_line}
 # grouping earliest_cr_line by year
 dataset$sec_app_earliest_cr_line <- as.integer(substring(as.character(dataset$sec_app_earliest_cr_line), 5))
-dataset$sec_app_earliest_cr_line[is.na(dataset$sec_app_earliest_cr_line)] <- 0
+dataset$sec_app_earliest_cr_line[is.na(dataset$sec_app_earliest_cr_line)] <- -999
 typeof(dataset$sec_app_earliest_cr_line)
 levels(dataset$sec_app_earliest_cr_line)
 ```
 
+```{r total_rec_late_fee}
+levels(dataset$total_rec_late_fee)
+```
+
+```{r NAs}
+str(dataset)
+summary(dataset)
+na_count <-sapply(dataset, function(y) sum(length(which(is.na(y)))))
+na_count
+
+```
+```{r Data Preparation NAs dummy coding}
+
+# changing the dataset as a tbl object.
+dataset <- as.tbl(dataset)
+# change NAs to 0 in integer columns
+dataset <- mutate_if(dataset, is.integer, ~replace(., is.na(.), -999))
+# change NAs to 0 in doubles columns
+
+dataset <- mutate_if(dataset, is.numeric, ~replace(., is.na(.), -999))
+# change NAs to 0 in strings columns
+
+dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
+
+# calculating the number of unique levels per column
+sapply(dataset, function(col) length(unique(col)))
+
+#removing dataset_7
+rm(dataset_7)
+
+# # attaching the cleaned dataset
+# attach(dataset)
+na_count <-sapply(dataset, function(y) sum(length(which(is.na(y)))))
+na_count
+
+```
 ```{r correlation matrix}
 
 # correlation matrix by p-value
-install.packages("Hmisc")
-library("Hmisc")
-corr.matrix<-rcorr(as.matrix(dataset), na.actions = na.omit)
+corrmatrix <- subset(dataset, select = c(-id_2, -term, -home_ownership, -initial_list_status, -application_type, -verification_status_joint, -hardship_flag, -hardship_type, -hardship_reason, -hardship_type, -hardship_loan_status, -hardship_status, -disbursement_method, -debt_settlement_flag, -verification_status, -loan_status, -pymnt_plan, -purpose, -settlement_status))
 
+mcor <- cor(corrmatrix)
+
+corr.matrix<-rcorr(as.matrix(corrmatrix[,:]))
+testa <- (cbind(corr.matrix$r,corr.matrix$n,corr.matrix$P))
+typeof(corr.matrix)
 # correlogram combined with significance test <- only correlations that are relevant are shown in the plot
-install.packages("corrplot")
-library(corrplot)
-corrplot(corr.matrix, type="upper", order="hclust", 
-         sig.level = 0.01, insig = "blank")
+
+cor(corr.matrix, )
+
+corrplot(mcor, type="upper", sig.level = 0.01, insig = "blank")
 # still gives out na error<- how can we remove all nas to make it work?
 
 ```
@@ -158,22 +190,3 @@ corrplot(corr.matrix, type="upper", order="hclust",
 <!-- # Replacing '' values in hardship_type to '0' -->
 <!-- dataset$hardship_type <- sub("INTEREST ONLY-3 MONTHS DEFERRAL", "1", dataset$hardship_type) -->
 <!-- ``` -->
-
-```{r total_rec_late_fee}
-levels(dataset$total_rec_late_fee)
-```
-
-  
-
-```{r Dummy coding earliest_cr_line}
-# grouping earliest_cr_line by year
-dataset$earliest_cr_line <- as.integer(substring(dataset$earliest_cr_line, 5))
-```
-
-```{r Dummy coding sec_app_earliest_cr_line}
-# grouping earliest_cr_line by year
-dataset$sec_app_earliest_cr_line <- as.integer(substring(as.character(dataset$sec_app_earliest_cr_line), 5))
-dataset$sec_app_earliest_cr_line[is.na(dataset$sec_app_earliest_cr_line)] <- 0
-typeof(dataset$sec_app_earliest_cr_line)
-levels(dataset$sec_app_earliest_cr_line)
-```
