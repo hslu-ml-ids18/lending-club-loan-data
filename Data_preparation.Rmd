@@ -92,8 +92,8 @@ dataset$sub_grade<- as.numeric(mapvalues(dataset$sub_grade, levels_sub_grade, se
 levels(dataset$sub_grade)
 ```
 
-```{r Dummy coding emp_lenght}
-# s
+```{r Dummy coding emp_length}
+# sorting emp_lenght, and dummy coding.
 levels_emp_length <- levels(dataset$emp_length)
 dataset$emp_length <- ordered(dataset$emp_length, levels = c("n/a", "< 1 year", "1 year", "2 years", "3 years","4 years", "5 years","6 years", "7 years", "8 years", "9 years", "10+ years"))
 levels(dataset$emp_length)
@@ -117,9 +117,9 @@ levels(dataset$emp_length)
 <!-- dataset$hardship_type <- sub("INTEREST ONLY-3 MONTHS DEFERRAL", "1", dataset$hardship_type) -->
 <!-- ``` -->
 
-<!-- ```{r total_rec_late_fee} -->
-<!-- levels(total_rec_late_fee) -->
-<!-- ``` -->
+```{r total_rec_late_fee}
+levels(dataset$total_rec_late_fee)
+```
 
 ```{r Dummy coding earliest_cr_line}
 # grouping earliest_cr_line by year
