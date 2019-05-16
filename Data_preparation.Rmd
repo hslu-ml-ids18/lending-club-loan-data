@@ -168,7 +168,8 @@ na_count
 corrmatrix <- subset(dataset, select = c(-id_2, -term, -home_ownership, -initial_list_status, -application_type, -verification_status_joint, -hardship_flag, -hardship_type, -hardship_reason, -hardship_type, -hardship_loan_status, -hardship_status, -disbursement_method, -debt_settlement_flag, -verification_status, -loan_status, -pymnt_plan, -purpose, -settlement_status))
 
 mcor <- cor(corrmatrix)
-corrplot(mcor, type="upper", sig.level = 0.001, insig = "blank",number.font = 0)
+corrplot(mcor, type="upper", sig.level = 0.001, insig = "blank", number.font = 1, 
+tl.cex = 0.55)
 # correlogram combined with significance test <- only correlations that are relevant are shown in the plot
 # still gives out na error<- how can we remove all nas to make it work?
 
