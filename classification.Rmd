@@ -8,24 +8,19 @@ output:
     df_print: paged
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 ## Initialization
 
 ```{r initialization, message=FALSE, warning=FALSE, results="hide"}
-rm(list=(ls()))
-
-# Loading required packages
-pacman::p_load(data.table, rmarkdown, tidyverse, caret, pls)
-
-```{r loading Rds file}
-dataset <- readRDS("dataset_7.Rds")
+source(file = "functions.R")
+func_init_env()
 ```
 
-```{r preprocessing, cleansing, inputation}
-dataset <- dataset[,colSums(is.na(dataset))<nrow(dataset)]
-setDT(dataset)
+```{r loading Rds file, results="hide"}
+dataset <- func_data_load()
+```
+
+```{r preprocessing, echo=TRUE}
+dataset <- func_data_prep(dataset)
 ```
 
 
@@ -33,7 +28,7 @@ setDT(dataset)
 # filter out all observations with loan_status == Current & check loan_status
 dataset <- dataset[loan_status != 'Current']
 dataset$loan_status[dataset$loan_status != "Fully Paid"] <- "Default"
-
+dataset <- func_imputation(dataset)
 ```
 
 ```{r validation set approach}
@@ -92,3 +87,4 @@ Conceptually compare your approach with a solution existing for this problem. (D
 prediction is a very well-known problem in literature).
 ```{r }
 
+```
