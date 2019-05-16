@@ -17,8 +17,9 @@ knitr::opts_chunk$set(echo = TRUE)
 rm(list=(ls()))
 
 # Loading required packages with library pacman
-pacman::p_load(corrplot, randomForest, rmarkdown, foreach, plyr, tidyverse, magrittr, data.table, dplyr, tibble)
-
+pacman::p_load(corrplot, randomForest, rmarkdown, foreach, plyr, tidyverse, magrittr, data.table, dplyr, tibble, caret, foreach, doMC)
+#Register 4 Cores
+registerDoMC(4)
 ```
 
 
@@ -29,43 +30,37 @@ set.seed(7)
 trainRows = sample(1:nrow(dataset),0.5*nrow(dataset))
 testRows = nrow(dataset) - trainRows
 
+# creating a small subset of data for testing models
+
+small_trainRows = sample(1:nrow(dataset),0.004*nrow(dataset))
+small_testRows = sample(nrow(dataset) - small_trainRows,0.004*nrow(dataset))
 ```
 
-<!-- ```{r} -->
-<!-- # we can probably remove the 2 below lines -->
-<!-- lm_func <- function(y) lm(int_rate ~., data = dataset) -->
-<!-- lapply(dataset, lm_func) -->
-<!-- ``` -->
-
-
 ```{r Data Exploration - lm}
-# idealy we would do an lm on the whole dataset like this:
-# lmp.fit=lm(int_rate~.,data = dataset)
-# but we run into not enough levels error.
-# the below lm works, by manualy removing the colums that R see as only having 1 level
-# this means we still need to do some data cleaning with these factors.
-# -total_rec_late_fee, has multiple level but are basically all around 0
+# lm on the whole dataset
 
-lmp.fit=lm(int_rate~., data=subset(dataset, select=c(-emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date)), na.action = na.exclude)
-# if we want to use lm(int_rate~.,data=dataset_7)
-# We need to modify our dataframe to avoid this error.
-# Error in `contrasts<-`(`*tmp*`, value = contr.funs[1 + isOF[nn]]) : 
-#   contrasts can be applied only to factors with 2 or more levels
+lmp.fit=lm(int_rate~.,data = dataset)
 
 summary(lmp.fit)
 ```
+
 ```{r stepwise model}
 # should we use a gaussian model here?
 null_model <- glm(int_rate ~ 1, data = dataset, family = "gaussian")
 
 # Specify the partial model using a subset of the potential predictors
 partial_model <- glm(int_rate ~ ., data=subset(dataset, select=c(-emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date)), family = "gaussian")
-# 
-# # This is taking too much time to process, stoped this at the 12th perdictor.
-# # Use a forward stepwise algorithm to build a parsimonious model
-# step_model <- step(null_model, scope = list(lower = null_model, upper = partial_model), direction = "forward")
-# #  int_rate ~ sub_grade + all_util + loan_status + total_pymnt + installment + initial_list_status + total_pymnt_inv + verification_status + loan_amnt + term + out_prncp_inv + inq_fi
-# 
+
+# This is taking too much time to process, stoped this at the 12th perdictor.
+# Use a forward stepwise algorithm to build a parsimonious model
+step_model <- step(null_model, scope = list(lower = null_model, upper = partial_model), direction = "forward")
+# #  int_rate ~ sub_grade + all_util + loan_status + total_pymnt +
+#     installment + initial_list_status + total_pymnt_inv + verification_status +
+#     loan_amnt + term + out_prncp_inv + inq_fi + last_pymnt_amnt +
+#     num_tl_op_past_12m + open_rv_12m + open_il_12m + sec_app_revol_util +
+#     num_bc_tl + out_prncp + max_bal_bc + pub_rec + total_bc_limit +
+#     open_acc + num_sats + purpose + total_rec_prncp
+
 
 # Estimate the stepwise probability
 step_prob <- predict(step_model, type = "response")
@@ -75,6 +70,29 @@ library(pROC)
 ROC <- roc(dataset$int_rate, step_prob)
 plot(ROC, col = "red")
 auc(ROC)
+```
+
+```{r Random Forest}
+
+int_rate_RF <-  foreach(ntree=rep(125, 4), .combine=combine, .packages='randomForest') %dopar% {
+
+int_rate_RF <- randomForest(int_rate ~. , data=subset(dataset, select=c(-emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date)) , subset =  trainRows, importance=TRUE, do.trace = TRUE, ntree=ntree)
+ }
+int_rate_RF
+summary(int_rate_RF)
+plot(int_rate_RF)
+fitted.int_rate=predict(int_rate_RF)
+
+int_rate_RF_pred <- predict(int_rate_RF, newdata = dataset[small_testRows,])
+view(int_rate_RF_pred)
+
+response_int_rate <- dataset[small_trainRows,]$int_rate
+ROC <- roc(int_rate_RF_pred, response_int_rate)
+plot(ROC, col = "red")
+auc(ROC)
+```
+```{r}
+model2 <- train(int_rate~., data = dataset[small_trainRows,], method = "ranger", na.action = na.omit)
 ```
 
 ```{r Data Exploration - interest rate vs loan amount}
@@ -99,7 +117,7 @@ plot(term, int_rate)
 plot(grade, int_rate)
 # The Grade seems to have a strong influence on the interest rate
 plot(sub_grade, int_rate)
-# We see the same but with a greater granualrity. 
+# We see the same but with a greater granualrity.
 
 ```
 
