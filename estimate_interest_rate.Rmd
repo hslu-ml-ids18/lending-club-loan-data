@@ -11,15 +11,17 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
 ## Initialization
 
 ```{r initialization, message=FALSE, warning=FALSE, results="hide"}
 rm(list=(ls()))
-
 # Loading required packages with library pacman
 pacman::p_load(corrplot, randomForest, rmarkdown, foreach, plyr, tidyverse, magrittr, data.table, dplyr, tibble, caret, foreach, doMC)
 #Register 4 Cores
 registerDoMC(4)
+#Get information form R session
+sessionInfo()
 ```
 
 
@@ -36,7 +38,7 @@ small_trainRows = sample(1:nrow(dataset),0.004*nrow(dataset))
 small_testRows = sample(nrow(dataset) - small_trainRows,0.004*nrow(dataset))
 ```
 
-```{r Data Exploration - lm}
+```{r Data Exploration - lm, cache=TRUE}
 # lm on the whole dataset
 
 lmp.fit=lm(int_rate~.,data = subset(dataset, select=c(-id_2)))
