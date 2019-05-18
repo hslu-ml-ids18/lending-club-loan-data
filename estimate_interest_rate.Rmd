@@ -39,8 +39,8 @@ testRows = nrow(dataset) - trainRows
 
 # creating a small subset of data for testing models
 
-small_trainRows = sample(1:nrow(dataset),0.01*nrow(dataset))
-small_testRows = sample(nrow(dataset) - small_trainRows,0.01*nrow(dataset))
+small_trainRows = sample(1:nrow(dataset),0.1*nrow(dataset))
+small_testRows = sample(nrow(dataset) - small_trainRows,0.1*nrow(dataset))
 ```
 
 ```{r Data Exploration - lm, cache=TRUE}
@@ -50,6 +50,8 @@ lmp.fit=lm(int_rate~.,data = subset(dataset, select=c(-id_2)))
 
 summary(lmp.fit)
 plot(lmp.fit)
+#removing features that do not have at least a 0.001 P value
+dataset <- subset(dataset, select = -c(annual_inc, dti, earliest_cr_line,total_pymnt, total_rec_prncp, total_rec_int, total_rec_late_fee, recoveries, acc_open_past_24mths, avg_cur_bal, bc_open_to_buy, delinq_amnt, mo_sin_old_rev_tl_op, mo_sin_rcnt_rev_tl_op, mort_acc, num_il_tl, pct_tl_nvr_dlq, tax_liens, total_bal_ex_mort, total_bc_limit, total_il_high_credit_limit, num_actv_bc_tl, mo_sin_rcnt_tl, policy_code))
 ```
 
 ```{r stepwise model, results = FALSE}
@@ -73,6 +75,31 @@ step_model <- step(null_model, scope = list(lower = null_model, upper = partial_
 
 
 
+
+# Estimate the stepwise probability
+step_prob <- predict(step_model, type = "response")
+
+
+
+# Plot the ROC of the stepwise model
+library(pROC)
+step_response <- dataset[small_testRows,]$int_rate
+ROC <-  roc(step_response, step_prob)
+plot(ROC, col = "red")
+auc(ROC)
+
+# MAPE
+MAPE(step_prob, step_response)
+```
+
+```{r stepwise model Both direction elimination , results = FALSE}
+# should we use a gaussian model here?
+null_model <- glm(int_rate ~ 1, data = subset(dataset[small_trainRows,], select=c(-id_2, -policy_code)), family = "gaussian")
+
+# Specify the partial model using a subset of the potential predictors
+partial_model <- glm(int_rate ~ ., data=subset(dataset[small_trainRows,], select=c(-id_2, -policy_code)), family = "gaussian")
+
+step_model <- step(null_model, scope = list(lower = null_model, upper = partial_model), direction = "both", trace = 1)
 
 # Estimate the stepwise probability
 step_prob <- predict(step_model, type = "response")
