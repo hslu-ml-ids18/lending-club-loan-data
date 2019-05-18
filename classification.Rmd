@@ -8,32 +8,28 @@ output:
     df_print: paged
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 ## Initialization
 
 ```{r initialization, message=FALSE, warning=FALSE, results="hide"}
-rm(list=(ls()))
-
-# Loading required packages
-pacman::p_load(data.table, rmarkdown, tidyverse, caret, pls)
-
-```{r loading Rds file}
-dataset <- readRDS("dataset_7.Rds")
+source(file = "functions.R")
+func_init_env()
 ```
 
-```{r preprocessing, cleansing, inputation}
-dataset <- dataset[,colSums(is.na(dataset))<nrow(dataset)]
-setDT(dataset)
+```{r loading Rds file, results="hide"}
+dataset <- func_data_load()
+```
+
+```{r preprocessing, echo=TRUE}
+dataset <- func_data_prep(dataset)
 ```
 
 
 ```{r concluded loans}
-# filter out all observations with loan_status == Current & check loan_status
+# filter out all observations with loan_status == Current
+# Change all the loan status that are not "Fully Paid" to "Default"
 dataset <- dataset[loan_status != 'Current']
 dataset$loan_status[dataset$loan_status != "Fully Paid"] <- "Default"
-
+dataset <- func_imputation(dataset)
 ```
 
 ```{r validation set approach}
@@ -73,11 +69,22 @@ model$bestTune
 
 ```
 
-Perform the classification using KNN, Logistic Regression, Decision tree and Random forest.
+Perform the classification using KNN.
 ```{r }
 
 ```
+Perform the classification using Logistic Regression.
+```{r }
 
+```
+Perform the classification using Decision tree.
+```{r }
+
+```
+Perform the classification using Random forest.
+```{r }
+
+```
 Compare the respective train and test error performances to select one of these approaches.
 ```{r }
 
@@ -92,3 +99,4 @@ Conceptually compare your approach with a solution existing for this problem. (D
 prediction is a very well-known problem in literature).
 ```{r }
 
+```

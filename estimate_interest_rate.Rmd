@@ -19,7 +19,7 @@ rm(list=(ls()))
 # Loading required packages with library pacman
 pacman::p_load(corrplot, randomForest, rmarkdown, foreach, plyr, tidyverse, magrittr, data.table, dplyr, tibble, caret, foreach, doMC, caret, MLmetrics)
 #Register 4 Cores
-registerDoMC(4)
+registerDoMC(2)
 #Get information form R session
 sessionInfo()
 ```
@@ -67,6 +67,8 @@ step_model <- step(null_model, scope = list(lower = null_model, upper = partial_
 #     open_acc + num_sats + purpose + total_rec_prncp
 
 
+
+
 # Estimate the stepwise probability
 step_prob <- predict(step_model, type = "response")
 
@@ -87,7 +89,7 @@ MAPE(step_prob, step_response)
 
 int_rate_RF <-  foreach(ntree=rep(125, 4), .combine=combine, .packages='randomForest') %dopar% {
 
-int_rate_RF <- randomForest(int_rate ~. , data=subset(dataset, select=c(-id_2)) , subset =  trainRows, importance=TRUE, do.trace = TRUE, ntree=ntree)
+int_rate_RF <- randomForest(int_rate ~. , data=subset(dataset, select=c(-id_2)) , subset =  small_trainRows, importance=TRUE, do.trace = TRUE, ntree=ntree)
  }
 int_rate_RF
 summary(int_rate_RF)
