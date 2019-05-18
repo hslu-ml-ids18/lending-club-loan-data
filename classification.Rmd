@@ -101,8 +101,7 @@ model$bestTune
 
 
 ```
-
-Perform the classification using KNN.
+Perform the classification using Decision tree.
 ```{r }
 
 ```
@@ -110,7 +109,7 @@ Perform the classification using Logistic Regression.
 ```{r }
 
 ```
-Perform the classification using Decision tree.
+Perform the classification using KNN.
 ```{r k-NN}
 # Set random seed.
 set.seed(7)
