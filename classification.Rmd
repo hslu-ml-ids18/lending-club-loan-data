@@ -27,9 +27,9 @@ dataset <- func_data_prep(dataset)
 ```{r concluded loans}
 # filter out all observations with loan_status == Current
 # Change all the loan status that are not "Fully Paid" to "Default"
+setDT(dataset)
 dataset <- dataset[loan_status != 'Current']
 dataset$loan_status[dataset$loan_status != "Fully Paid"] <- "Default"
-dataset <- func_imputation(dataset)
 ```
 
 ```{r validation set approach}
@@ -48,7 +48,25 @@ Use Principal Component Analysis for base transformation and then compare it wit
 -> http://www.sthda.com/english/articles/37-model-selection-essentials-in-r/152-principal-component-and-partial-least-squares-regression-essentials/
 -> https://www.datacamp.com/community/tutorials/pca-analysis-r
 ```{r }
-train.pca <- prcomp(train.data[,c(1,2,3,4)], center = TRUE,scale. = TRUE)
+# convert categorical variables into numeric                   
+tds <- data.frame(model.matrix( ~ .- 1, data=dataset)) 
+tds
+str(tds)
+
+# pcr like in the slides
+#attach(dataset)
+#pcr.fit= pcr(loan_status ~ ., data=tds ,scale=FALSE ,
+#validation ="CV")
+
+
+#other way convert categorical variables into numeric 
+#library(dummies)
+#new_my_data <- dummy.data.frame(dataset, names = c("term","home_ownership"))
+#str(new_my_data)
+
+
+
+train.pca <- prcomp(train.data, center = TRUE,scale. = TRUE)
 
 summary(train.pca)
 
