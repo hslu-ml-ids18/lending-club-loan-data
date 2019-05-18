@@ -25,6 +25,12 @@ func_data_load<- function () {
 
 ## function initalizes environment
 func_data_prep<- function (dataset) {
+  #sort dataset by colunm names
+  dataset = dataset[ , order(names(dataset))]
+  
+  #removing policy_code because always equals 1
+  dataset = subset(dataset, select = -c(policy_code) )
+  
   
   # Removing columns that have > 0.05 NAs
   dataset <- dataset[, -which(colMeans(is.na(dataset)) > 0.05)]

@@ -26,9 +26,13 @@ dataset <- func_data_prep(dataset)
 
 ```{r concluded loans}
 # filter out all observations with loan_status == Current & check loan_status
+setDT(dataset)
 dataset <- dataset[loan_status != 'Current']
 dataset$loan_status[dataset$loan_status != "Fully Paid"] <- "Default"
-dataset <- func_imputation(dataset)
+
+# Removes unused factor levels
+dataset$loan_status <- factor(dataset$loan_status)
+
 ```
 
 ```{r validation set approach}
@@ -44,27 +48,44 @@ test.data  <- dataset[-trainIndex]
 ```
 
 Use Principal Component Analysis for base transformation and then compare it with the Partial Least Squares Regression result. Select the best base with cross validation, using the better of the two approaches. 
--> http://www.sthda.com/english/articles/37-model-selection-essentials-in-r/152-principal-component-and-partial-least-squares-regression-essentials/
--> https://www.datacamp.com/community/tutorials/pca-analysis-r
-```{r }
-train.pca <- prcomp(train.data[,c(1,2,3,4)], center = TRUE,scale. = TRUE)
+```{r, message=FALSE, warning=FALSE, results="hide"}
+
+#the selection of the principal components to incorporate in the model is not supervised by the outcome variable!
+train.pca <- prcomp(subset(train.data, select = -c(term, home_ownership, verification_status, loan_status, pymnt_plan, purpose, initial_list_status, application_type, verification_status_joint, hardship_flag, hardship_type, hardship_reason, hardship_status, hardship_loan_status, disbursement_method, debt_settlement_flag, settlement_status) ), center = TRUE,scale. = TRUE)
 
 summary(train.pca)
+
+#make a biplot, which includes both the position of each sample in terms of PC1 and PC2
+biplot(train.pca)
 
 # Build the model on training set
 
 model <- train(
-  loan_status~., data = train.data, method = "pcr",
+  loan_status~., data = subset(train.data, select = -c(term, home_ownership, verification_status, pymnt_plan, purpose, initial_list_status, application_type, verification_status_joint, hardship_flag, hardship_type, hardship_reason, hardship_status, hardship_loan_status, disbursement_method, debt_settlement_flag, settlement_status) ), method = "pls",
   scale = TRUE,
   trControl = trainControl("cv", number = 10),
   tuneLength = 10
   )
+
+
+
 # Plot model RMSE vs different values of components
 plot(model)
 # Print the best tuning parameter ncomp that
 # minimize the cross-validation error, RMSE
 model$bestTune
 
+
+
+
+
+
+
+```
+
+
+Perform Partial Least Squares Regression
+```{r}
 
 ```
 
