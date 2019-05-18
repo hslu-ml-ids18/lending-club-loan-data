@@ -124,7 +124,7 @@ for (k in range) {
   # Clculate the accuracy and store it in accs[k]
   accs[k] <- sum(diag(conf)) / sum(conf)
 }
-# Plot the accuracies. Title of x-axis is "k".
+# Plot the accuracies.
 plot(range, accs, xlab = "k")
 
 # Calculate the best k
