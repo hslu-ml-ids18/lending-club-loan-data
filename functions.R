@@ -5,7 +5,7 @@ func_init_env <- function () {
   
   # install and loading required packages
   library(pacman)
-  pacman::p_load(data.table, rmarkdown, tidyverse, caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, pROC, class)
+  pacman::p_load(data.table, rmarkdown, tidyverse, caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, pROC, class, MLmetrics, tree)
   
   #Register 4 Cores
   registerDoMC(4)
@@ -48,7 +48,7 @@ func_data_prep<- function (dataset) {
   # last_pymnt_d and next_pymnt_d will be removed
   # addr_state is remove as it's not significant
   # grade is remove as it's a covariance of sub_grade
-  dataset <- subset(dataset, select = -c(desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
+  dataset <- subset(dataset, select = -c(policy_id, desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
 
   # sub_grade has more than 32 levels which is a hard limit for random forest.
   # We'll dummy code it to circument this
