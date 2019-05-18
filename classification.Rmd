@@ -62,7 +62,7 @@ small_test <- dataset[small_testRows,]
 Use Principal Component Analysis for base transformation and then compare it with the Partial Least Squares Regression result. Select the best base with cross validation, using the better of the two approaches. 
 -> http://www.sthda.com/english/articles/37-model-selection-essentials-in-r/152-principal-component-and-partial-least-squares-regression-essentials/
 -> https://www.datacamp.com/community/tutorials/pca-analysis-r
-```{r }
+```{r Principal Component Regression}
 # convert categorical variables into numeric                   
 tds <- data.frame(model.matrix( ~ .- 1, data=dataset)) 
 tds
@@ -73,13 +73,10 @@ str(tds)
 #pcr.fit= pcr(loan_status ~ ., data=tds ,scale=FALSE ,
 #validation ="CV")
 
-
 #other way convert categorical variables into numeric 
 #library(dummies)
 #new_my_data <- dummy.data.frame(dataset, names = c("term","home_ownership"))
 #str(new_my_data)
-
-
 
 train.pca <- prcomp(train.data, center = TRUE,scale. = TRUE)
 
@@ -98,8 +95,6 @@ plot(model)
 # Print the best tuning parameter ncomp that
 # minimize the cross-validation error, RMSE
 model$bestTune
-
-
 ```
 Perform the classification using Decision tree.
 ```{r }
