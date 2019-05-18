@@ -15,12 +15,17 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Initialization
 
 ```{r initialization, message=FALSE, warning=FALSE, results="hide"}
-rm(list=(ls()))
-# Loading required packages with library pacman
-pacman::p_load(corrplot, randomForest, rmarkdown, foreach, plyr, tidyverse, magrittr, data.table, dplyr, tibble, caret, foreach, doMC, caret, MLmetrics)
-#Register 4 Cores
-registerDoMC(2)
-#Get information form R session
+source(file = "functions.R")
+func_init_env()
+```
+
+```{r loading Rds file, results="hide"}
+dataset <- func_data_load()
+```
+
+```{r preprocessing, echo=TRUE}
+dataset <- func_data_prep(dataset)
+
 sessionInfo()
 ```
 
