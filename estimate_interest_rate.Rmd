@@ -11,17 +11,15 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
 ## Initialization
 
 ```{r initialization, message=FALSE, warning=FALSE, results="hide"}
 rm(list=(ls()))
+
 # Loading required packages with library pacman
-pacman::p_load(corrplot, randomForest, rmarkdown, foreach, plyr, tidyverse, magrittr, data.table, dplyr, tibble, caret, foreach, doMC, caret, MLmetrics)
+pacman::p_load(corrplot, randomForest, rmarkdown, foreach, plyr, tidyverse, magrittr, data.table, dplyr, tibble, caret, foreach, doMC)
 #Register 4 Cores
-registerDoMC(2)
-#Get information form R session
-sessionInfo()
+registerdoMC(4)
 ```
 
 
@@ -34,31 +32,28 @@ testRows = nrow(dataset) - trainRows
 
 # creating a small subset of data for testing models
 
-small_trainRows = sample(1:nrow(dataset),0.01*nrow(dataset))
-small_testRows = sample(nrow(dataset) - small_trainRows,0.01*nrow(dataset))
+small_trainRows = sample(1:nrow(dataset),0.004*nrow(dataset))
+small_testRows = sample(nrow(dataset) - small_trainRows,0.004*nrow(dataset))
 ```
 
-```{r Data Exploration - lm, cache=TRUE}
+```{r Data Exploration - lm}
 # lm on the whole dataset
 
-lmp.fit=lm(int_rate~.,data = subset(dataset, select=c(-id_2)))
+lmp.fit=lm(int_rate~.,data = dataset)
 
 summary(lmp.fit)
-plot(lmp.fit)
 ```
 
-```{r stepwise model, results = FALSE}
+```{r stepwise model}
 # should we use a gaussian model here?
-null_model <- glm(int_rate ~ 1, data = subset(dataset[small_trainRows,], select=c(-id_2, -policy_code)), family = "gaussian")
+null_model <- glm(int_rate ~ 1, data = dataset, family = "gaussian")
 
 # Specify the partial model using a subset of the potential predictors
-partial_model <- glm(int_rate ~ ., data=subset(dataset[small_trainRows,], select=c(-id_2, -policy_code)), family = "gaussian")
-
-#  -emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date
+partial_model <- glm(int_rate ~ ., data=subset(dataset, select=c(-emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date)), family = "gaussian")
 
 # This is taking too much time to process, stoped this at the 12th perdictor.
 # Use a forward stepwise algorithm to build a parsimonious model
-step_model <- step(null_model, scope = list(lower = null_model, upper = partial_model), direction = "forward", trace = 1)
+step_model <- step(null_model, scope = list(lower = null_model, upper = partial_model), direction = "forward")
 # #  int_rate ~ sub_grade + all_util + loan_status + total_pymnt +
 #     installment + initial_list_status + total_pymnt_inv + verification_status +
 #     loan_amnt + term + out_prncp_inv + inq_fi + last_pymnt_amnt +
@@ -67,29 +62,21 @@ step_model <- step(null_model, scope = list(lower = null_model, upper = partial_
 #     open_acc + num_sats + purpose + total_rec_prncp
 
 
-
-
 # Estimate the stepwise probability
 step_prob <- predict(step_model, type = "response")
 
-
-
 # Plot the ROC of the stepwise model
 library(pROC)
-step_response <- dataset[small_testRows,]$int_rate
-ROC <-  roc(step_response, step_prob)
+ROC <- roc(dataset$int_rate, step_prob)
 plot(ROC, col = "red")
 auc(ROC)
-
-# MAPE
-MAPE(step_prob, step_response)
 ```
 
 ```{r Random Forest}
 
 int_rate_RF <-  foreach(ntree=rep(125, 4), .combine=combine, .packages='randomForest') %dopar% {
 
-int_rate_RF <- randomForest(int_rate ~. , data=subset(dataset, select=c(-id_2)) , subset =  small_trainRows, importance=TRUE, do.trace = TRUE, ntree=ntree)
+int_rate_RF <- randomForest(int_rate ~. , data=subset(dataset, select=c(-emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date)) , subset =  trainRows, importance=TRUE, do.trace = TRUE, ntree=ntree)
  }
 int_rate_RF
 summary(int_rate_RF)
@@ -104,9 +91,8 @@ ROC <- roc(int_rate_RF_pred, response_int_rate)
 plot(ROC, col = "red")
 auc(ROC)
 ```
-```{r Random Forest Ranger, cache= TRUE}
-model2 <- train(int_rate~., data = dataset[small_trainRows,], method = "ranger")
-plot(model2)
+```{r}
+model2 <- train(int_rate~., data = dataset[small_trainRows,], method = "ranger", na.action = na.omit)
 ```
 
 ```{r Data Exploration - interest rate vs loan amount}
