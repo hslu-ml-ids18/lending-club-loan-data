@@ -23,6 +23,7 @@ dataset <- func_data_load()
 dataset <- func_data_prep(dataset)
 ```
 
+<<<<<<< HEAD
 
 ```{r concluded loans}
 # filter out all observations with loan_status == Current & check loan_status
@@ -33,25 +34,74 @@ dataset$loan_status[dataset$loan_status != "Fully Paid"] <- "Default"
 # Removes unused factor levels
 dataset$loan_status <- factor(dataset$loan_status)
 
+=======
+```{r concluded loans results= FALSE}
+# filter out all observations with loan_status == Current
+# Change all the loan status that are not "Fully Paid" to "Default"
+setDT(dataset)
+dataset <- dataset[loan_status != 'Current']
+dataset$loan_status[dataset$loan_status != "Fully Paid"] <- "Default"
+```
+```{r  create a "defaulted" column for classification}
+# We create a new column, "defaulted" which has value 1 if the credit was defaulted.
+# the column has value 0 if it hasne't defaulted.
+levels_loan_status <- as.vector(levels(dataset$loan_status))
+dataset$defaulted <- mapvalues(dataset$loan_status, levels_loan_status, c(0,0,1,0,0,0,0,0,0))
+>>>>>>> 341fe25937861e7b2a1b8770cd0407016f8f69e8
 ```
 
+
 ```{r validation set approach}
+dataset$defaulted <- as.numeric(dataset$defaulted)
+dataset <- subset(dataset, select = -c(hardship_type, hardship_reason, hardship_status, hardship_loan_status,settlement_status, verification_status_joint, hardship_flag, disbursement_method, debt_settlement_flag, application_type, purpose, pymnt_plan, loan_status, verification_status, home_ownership, initial_list_status, term))
 # setting a seed for reproducability
 set.seed(7)
 
 # random split into  train and test set, with a ratio of 20:80
 trainIndex <- sample(1:nrow(dataset),0.01*nrow(dataset))
 
-train.data <- dataset[trainIndex]
-test.data  <- dataset[-trainIndex]
+train.data <- dataset[trainIndex,]
+test.data  <- dataset[-trainIndex,]
+# creating a small subset of rows testing models
 
+small_trainRows = sample(1:nrow(dataset),0.004*nrow(dataset))
+small_testRows = sample(nrow(dataset) - small_trainRows,0.004*nrow(dataset))
+
+# creating a small subset of data for testing models
+small_train <- dataset[small_trainRows,]
+small_test <- dataset[small_testRows,]
 ```
 
 Use Principal Component Analysis for base transformation and then compare it with the Partial Least Squares Regression result. Select the best base with cross validation, using the better of the two approaches. 
+<<<<<<< HEAD
 ```{r, message=FALSE, warning=FALSE, results="hide"}
 
 #the selection of the principal components to incorporate in the model is not supervised by the outcome variable!
 train.pca <- prcomp(subset(train.data, select = -c(term, home_ownership, verification_status, loan_status, pymnt_plan, purpose, initial_list_status, application_type, verification_status_joint, hardship_flag, hardship_type, hardship_reason, hardship_status, hardship_loan_status, disbursement_method, debt_settlement_flag, settlement_status) ), center = TRUE,scale. = TRUE)
+=======
+-> http://www.sthda.com/english/articles/37-model-selection-essentials-in-r/152-principal-component-and-partial-least-squares-regression-essentials/
+-> https://www.datacamp.com/community/tutorials/pca-analysis-r
+```{r }
+# convert categorical variables into numeric                   
+tds <- data.frame(model.matrix( ~ .- 1, data=dataset)) 
+tds
+str(tds)
+
+# pcr like in the slides
+#attach(dataset)
+#pcr.fit= pcr(loan_status ~ ., data=tds ,scale=FALSE ,
+#validation ="CV")
+
+
+#other way convert categorical variables into numeric 
+#library(dummies)
+#new_my_data <- dummy.data.frame(dataset, names = c("term","home_ownership"))
+#str(new_my_data)
+
+
+
+train.pca <- prcomp(train.data, center = TRUE,scale. = TRUE)
+>>>>>>> 341fe25937861e7b2a1b8770cd0407016f8f69e8
 
 summary(train.pca)
 
@@ -88,12 +138,64 @@ Perform Partial Least Squares Regression
 ```{r}
 
 ```
-
-Perform the classification using KNN, Logistic Regression, Decision tree and Random forest.
+Perform the classification using Decision tree.
 ```{r }
 
 ```
+Perform the classification using Logistic Regression.
+```{r }
 
+```
+Perform the classification using KNN.
+```{r k-NN}
+# Set random seed.
+set.seed(7)
+
+# Creating test and train labels
+train_labels <- small_train$defaulted
+test_labels <- small_test$defaulted
+
+# 
+knn_train <- small_train
+knn_test <- small_test
+
+# droping defaulted columns
+knn_train$defaulted <- NULL
+knn_test$defaulted <- NULL
+
+# Make predictions using knn: pred
+pred <- knn(train = knn_train, test = knn_test, cl = train_labels, k = 5)
+
+# Construct the confusion matrix: conf
+conf <- table(test_labels, pred)
+
+# Print out the confusion matrix
+conf
+
+# Define range and accs
+range <- 1:round(0.2 * nrow(knn_train))
+accs <- rep(0, length(range))
+for (k in range) {
+
+  # Make predictions using knn: pred
+  pred <- knn(knn_train, knn_test, train_labels, k = k)
+
+  # Construct the confusion matrix: conf
+  conf <- table(test_labels, pred)
+
+  # Clculate the accuracy and store it in accs[k]
+  accs[k] <- sum(diag(conf)) / sum(conf)
+}
+# Plot the accuracies.
+plot(range, accs, xlab = "k")
+
+# Calculate the best k
+which.max(accs)
+```
+Perform the classification using Random forest.
+```{r }
+
+```
 Compare the respective train and test error performances to select one of these approaches.
 ```{r }
 
