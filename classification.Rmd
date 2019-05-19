@@ -10,7 +10,7 @@ output:
 
 ## Initialization
 
-```{r initialization, message=FALSE, warning=FALSE, results="hide"}
+```{r initialization, results="hide"}
 source(file = "functions.R")
 func_init_env()
 ```
@@ -23,56 +23,173 @@ dataset <- func_data_load()
 dataset <- func_data_prep(dataset)
 ```
 
+## Preprocessing
 
-```{r concluded loans}
-# filter out all observations with loan_status == Current & check loan_status
+```{r concluded loans results= FALSE}
+# Make a data.table
+setDT(dataset)
+
+# filter out all observations with loan_status == Current
 dataset <- dataset[loan_status != 'Current']
+
+# Change all the loan status that are not "Fully Paid" to "Default"
 dataset$loan_status[dataset$loan_status != "Fully Paid"] <- "Default"
-dataset <- func_imputation(dataset)
+
+# Remove unused factor levels
+dataset$loan_status <- factor(dataset$loan_status)
+
+# Removing Feature 
+dataset <- subset(dataset, select = -c(hardship_type, hardship_reason, hardship_status, hardship_loan_status,settlement_status, verification_status_joint, hardship_flag, disbursement_method, debt_settlement_flag, application_type, purpose, pymnt_plan, verification_status, home_ownership, initial_list_status, term))
 ```
+
+## Create Train and Testset
 
 ```{r validation set approach}
 # setting a seed for reproducability
 set.seed(7)
 
 # random split into  train and test set, with a ratio of 20:80
-trainIndex <- sample(1:nrow(dataset),0.01*nrow(dataset))
+trainIndex <- sample(1:nrow(dataset),0.8*nrow(dataset))
 
-train.data <- dataset[trainIndex]
-test.data  <- dataset[-trainIndex]
+train.data <- dataset[trainIndex,]
+test.data  <- dataset[-trainIndex,]
+
+# creating a small subset of data for testing models
+train_smallIndex  <- sample(1:nrow(train.data), 1000)
+test_smallIndex   <- sample(1:nrow(test.data), 1000)
+
+small_train <- dataset[train_smallIndex,]
+small_test  <- dataset[test_smallIndex,]
+```
+
+# https://www.r-bloggers.com/partial-least-squares-in-r/
+```{r}
+# Compile cross-validation settings
+set.seed(100)
+myfolds <- createMultiFolds(train.data, k = 5, times = 10)
+control <- trainControl("repeatedcv", index = myfolds, selectionFunction = "oneSE")
+ 
+```
+
+#Perform Partial Least Squares Regression
+```{r}
+
+# Train PLS model
+mod1 <- train(loan_status ~ ., data = train.data,
+ method = "pls",
+ metric = "Accuracy",
+ tuneLength = 20,
+ trControl = control,
+ preProc = c("zv","center","scale"))
 
 ```
 
-Use Principal Component Analysis for base transformation and then compare it with the Partial Least Squares Regression result. Select the best base with cross validation, using the better of the two approaches. 
--> http://www.sthda.com/english/articles/37-model-selection-essentials-in-r/152-principal-component-and-partial-least-squares-regression-essentials/
--> https://www.datacamp.com/community/tutorials/pca-analysis-r
+#Perform Principal Component Analysis 
+```{r}
+# PCA-DA
+mod2 <- train(loan_status ~ ., data = train.data,
+method = "lda",
+metric = "Accuracy",
+trControl = control,
+preProc = c("zv","center","scale","pca"))
+ 
+plot(mod1)
+
+```
+
+# Compile models and compare performance
+```{r, message=FALSE, warning=FALSE, results="hide"}
+
+models <- resamples(list("PLS-DA" = mod1, "PCA-DA" = mod2))
+bwplot(models, metric = "Accuracy")
+
+plot(varImp(mod1), 10, main = "PLS-DA")
+plot(varImp(mod2), 10, main = "PCA-DA")
+
+```
+
+```{r}
+lm.fit <- lm(defaulted ~., dataset)
+summary(lm.fit)
+```
+Perform the classification using Decision tree.
+```{r Fit a regression tree to predict the defaulted status}
+tree.defaulted<- tree(defaulted ~., data = dataset)
+summary(tree.defaulted)
+plot(tree.defaulted)
+text(tree.defaulted, cex = 0.75)
+# The text isn't showing up
+```
+Perform the classification using Logistic Regression.
 ```{r }
-train.pca <- prcomp(train.data[,c(1,2,3,4)], center = TRUE,scale. = TRUE)
-
-summary(train.pca)
-
-# Build the model on training set
-
-model <- train(
-  loan_status~., data = train.data, method = "pcr",
-  scale = TRUE,
-  trControl = trainControl("cv", number = 10),
-  tuneLength = 10
-  )
-# Plot model RMSE vs different values of components
-plot(model)
-# Print the best tuning parameter ncomp that
-# minimize the cross-validation error, RMSE
-model$bestTune
-
 
 ```
+Perform the classification using KNN.
+```{r k-NN}
+# Set random seed.
+set.seed(7)
 
-Perform the classification using KNN, Logistic Regression, Decision tree and Random forest.
+# Creating test and train labels
+train_labels <- small_train$defaulted
+test_labels <- small_test$defaulted
+
+# 
+knn_train <- small_train
+knn_test <- small_test
+
+# droping defaulted columns
+knn_train$defaulted <- NULL
+knn_test$defaulted <- NULL
+
+# Make predictions using knn: pred
+pred <- knn(train = knn_train, test = knn_test, cl = train_labels, k = 5)
+
+# Construct the confusion matrix: conf
+conf <- table(test_labels, pred)
+
+# Print out the confusion matrix
+conf
+
+# Define range and accs
+range <- 1:round(0.2 * nrow(knn_train))
+accs <- rep(0, length(range))
+for (k in range) {
+
+  # Make predictions using knn: pred
+  pred <- knn(knn_train, knn_test, train_labels, k = k)
+
+  # Construct the confusion matrix: conf
+  conf <- table(test_labels, pred)
+
+  # Clculate the accuracy and store it in accs[k]
+  accs[k] <- sum(diag(conf)) / sum(conf)
+}
+# Plot the accuracies.
+plot(range, accs, xlab = "k")
+
+# Calculate the best k
+which.max(accs)
+```
+Perform the classification using Random forest.
 ```{r }
+defaulted_RF <-  foreach(ntree=rep(125, 4), .combine=combine, .packages='randomForest') %dopar% {
+# for some reason defaulted_RF returns: Unknown or uninitialised column: 'loan_status'. 
 
+defaulted_RF <- randomForest(defaulted ~. , data=subset(dataset, select=c(-id_2, -loan_status)) , subset =  small_trainRows, importance=TRUE, do.trace = TRUE, ntree=ntree)
+ }
+defaulted_RF
+summary(defaulted_RF)
+plot(defaulted_RF)
+fitted.int_rate=predict(defaulted_RF)
+
+defaulted_RF_pred <- predict(defaulted_RF, newdata = dataset[small_testRows,])
+view(defaulted_RF_pred)
+
+defaulted_int_rate <- dataset[small_trainRows,]$defaulted
+ROC <- roc(defaulted_RF_pred, defaulted_int_rate)
+plot(ROC, col = "red")
+auc(ROC)
 ```
-
 Compare the respective train and test error performances to select one of these approaches.
 ```{r }
 

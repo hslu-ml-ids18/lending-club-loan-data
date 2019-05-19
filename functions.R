@@ -5,8 +5,9 @@ func_init_env <- function () {
   
   # install and loading required packages
   library(pacman)
-  pacman::p_load(data.table, rmarkdown, tidyverse, caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, pROC)
-  
+
+  pacman::p_load(ranger, data.table, rmarkdown, tidyverse, caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, pROC, class,MLmetrics, tree)
+
   #Register 4 Cores
   registerDoMC(4)
   
@@ -25,6 +26,12 @@ func_data_load<- function () {
 
 ## function initalizes environment
 func_data_prep<- function (dataset) {
+  #sort dataset by colunm names
+  dataset = dataset[ , order(names(dataset))]
+  
+  #removing policy_code because always equals 1
+  dataset = subset(dataset, select = -c(policy_code) )
+  
   
   # Removing columns that have > 0.05 NAs
   dataset <- dataset[, -which(colMeans(is.na(dataset)) > 0.05)]
@@ -38,11 +45,11 @@ func_data_prep<- function (dataset) {
   # zip_code has too many levels and is a covariance of addr_state, thus we can remove it.
   
   # Too keep: earliest_cr_line could be an interesting variable to dummy code, we could transform it to only hold the year and make it a numerical value. same is true for sec_app_earliest_cr_line
-  
+
   # last_pymnt_d and next_pymnt_d will be removed
   # addr_state is remove as it's not significant
   # grade is remove as it's a covariance of sub_grade
-  dataset <- subset(dataset, select = -c(desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
+  dataset <- subset(dataset, select = -c(policy_id, desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
 
   # sub_grade has more than 32 levels which is a hard limit for random forest.
   # We'll dummy code it to circument this
@@ -80,6 +87,23 @@ func_data_prep<- function (dataset) {
   # change NAs to 0 in strings columns
   
   dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
+  
+  # change NAs to 0 in strings columns
+  
+  # dataset <- mutate_if(dataset, is.factor, ~replace(., is.na(.), "NA"))
+  
+  # change columns to character¨
+  # dataset$hardship_type <- as.character(dataset$hardship_type)
+  # dataset$hardship_reason <- as.character(dataset$hardship_reason)
+  # dataset$hardship_status <- as.character(dataset$hardship_status)
+  # dataset$hardship_loan_status <- as.character(dataset$hardship_loan_status)
+  # dataset$settlement_status <- as.character(dataset$settlement_status)
+  # dataset$verification_status_joint <- as.character(dataset$verification_status_joint)
+  # 
+  # change empty character columns to "NA"
+  # 
+  dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
+  # 
   
   # calculating the number of unique levels per column
   sapply(dataset, function(col) length(unique(col)))
