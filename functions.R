@@ -49,7 +49,7 @@ func_data_prep<- function (dataset) {
   # last_pymnt_d and next_pymnt_d will be removed
   # addr_state is remove as it's not significant
   # grade is remove as it's a covariance of sub_grade
-  dataset <- subset(dataset, select = -c(policy_id, desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
+  dataset <- subset(dataset, select = -c(desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
 
   # sub_grade has more than 32 levels which is a hard limit for random forest.
   # We'll dummy code it to circument this
@@ -61,7 +61,7 @@ func_data_prep<- function (dataset) {
   levels_emp_length <- levels(dataset$emp_length)
   dataset$emp_length <- ordered(dataset$emp_length, levels = c("n/a", "< 1 year", "1 year", "2 years", "3 years","4 years", "5 years","6 years", "7 years", "8 years", "9 years", "10+ years"))
   levels(dataset$emp_length)
-  dataset$emp_length <- as.numeric(mapvalues(dataset$emp_length, levels_emp_length, c(-999, seq(from = 0, to = 10, by = 1))))
+  dataset$emp_length <- as.numeric(mapvalues(dataset$emp_length, levels_emp_length, c(-1, seq(from = 0, to = 10, by = 1))))
   levels(dataset$emp_length)
   
   # grouping earliest_cr_line by year
@@ -69,7 +69,7 @@ func_data_prep<- function (dataset) {
   
   # grouping earliest_cr_line by year
   dataset$sec_app_earliest_cr_line <- as.integer(substring(as.character(dataset$sec_app_earliest_cr_line), 5))
-  dataset$sec_app_earliest_cr_line[is.na(dataset$sec_app_earliest_cr_line)] <- -999
+  dataset$sec_app_earliest_cr_line[is.na(dataset$sec_app_earliest_cr_line)] <- -1
   typeof(dataset$sec_app_earliest_cr_line)
   levels(dataset$sec_app_earliest_cr_line)
   
@@ -80,10 +80,10 @@ func_data_prep<- function (dataset) {
   # changing the dataset as a tbl object.
   dataset <- as.tbl(dataset)
   # change NAs to 0 in integer columns
-  dataset <- mutate_if(dataset, is.integer, ~replace(., is.na(.), -999))
+  dataset <- mutate_if(dataset, is.integer, ~replace(., is.na(.), -1))
   # change NAs to 0 in doubles columns
   
-  dataset <- mutate_if(dataset, is.numeric, ~replace(., is.na(.), -999))
+  dataset <- mutate_if(dataset, is.numeric, ~replace(., is.na(.), -1))
   # change NAs to 0 in strings columns
   
   dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
