@@ -6,7 +6,7 @@ func_init_env <- function () {
   # install and loading required packages
   library(pacman)
 
-  pacman::p_load(ranger, data.table, rmarkdown, tidyverse, caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, pROC, class,MLmetrics, tree)
+  pacman::p_load(class, ROCR, ranger, data.table, rmarkdown, tidyverse, caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, pROC, class,MLmetrics, tree)
 
   #Register 4 Cores
   registerDoMC(4)
