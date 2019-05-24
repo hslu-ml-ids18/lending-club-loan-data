@@ -50,6 +50,8 @@ dataset$defaulted <- factor(dataset$defaulted)
 ```
 
 ```{r}
+
+# Dummy coding 
 dataset <- dummy.data.frame(dataset, names = c("application_type","debt_settlement_flag", "disbursement_method","hardship_flag","hardship_loan_status","hardship_type","home_ownership","initial_list_status","loan_status","purpose","term", "settlement_status"))
 
 dataset <- dummy.data.frame(dataset, names = c("hardship_status","pymnt_plan", "settlement_status", "verification_status", "verification_status_joint"))
@@ -207,48 +209,60 @@ knn_train$defaulted <- NULL
 knn_test$defaulted <- NULL
 
 # Make predictions using knn: pred
-pred <- knn(train = knn_train, test = knn_test, cl = train_labels, k = 5)
+knn_pred <- knn(train = knn_train, test = knn_test, cl = train_labels, k = 1)
 
 # Construct the confusion matrix: conf
 conf <- table(test_labels, pred)
 
 # Print out the confusion matrix
 conf
-# Something isn't right here.
+# Something isn't right in the confusion matrix.
+# Plot the ROC curves #something s
+pred <- prediction(preds_list, train_labels)
+rocs <- performance(pred, "fpr", "tpr")
+plot(rocs, col = as.list(1:m), main = "Test Set ROC Curves")
+
 # Define range and accs
-range <- 1:round(0.2 * nrow(knn_train))
-accs <- rep(0, length(range))
-for (k in range) {
+# range <- 1:round(0.2 * nrow(knn_train))
+# accs <- rep(0, length(range))
+# for (k in range) {
+# 
+#   # Make predictions using knn: pred
+#   knn_pred <- knn(knn_train, knn_test, train_labels, k = k)
+# 
+#   # Construct the confusion matrix: conf
+#   conf <- table(test_labels, knn_pred)
+# 
+#   # Calculate the accuracy and store it in accs[k]
+#   accs[k] <- sum(diag(conf)) / sum(conf)
+# }
 
-  # Make predictions using knn: pred
-  knn_pred <- knn(knn_train, knn_test, train_labels, k = k)
-
-  # Construct the confusion matrix: conf
-  conf <- table(test_labels, knn_pred)
-
-  # Calculate the accuracy and store it in accs[k]
-  accs[k] <- sum(diag(conf)) / sum(conf)
-}
-# Plot the accuracies.
-plot(range, accs, xlab = "k")
+saveRDS(accs, "knn_accs")
+saveRDS(knn_pred, "knn_pred")
+saveRDS(conf, "knn_conf")
 
 # Calculate the best k
-which.max(accs)
-# best k = 75
+which.max(accs1)
+
+# Plot the accuracies.
+# Highlighting the datapoint that has the higgest accuracy 
+plot(range1, accs1, xlab = "k", ylab = "Accuracy", main = "Number of neighbours (K) vs Test Accuracy",
+     col=ifelse(range1== which.max(accs1), "red", "black"))
+
+# with the newer model we get k = 5, probably beaucse with this bigger dataset we don't need as many neighbourgs
 
 # Estimate the test error rate
 mean(knn_pred != test_labels)
+# we get 0.2222156
 
-# Fit the k-NN model with k=75
+# Fit the k-NN model with k=5
 set.seed(7)
-pred <- knn(train = knn_train, test = knn_test, cl = train_labels, k = 75)
+knn_5_pred <- knn(train = knn_train, test = knn_test, cl = train_labels, k = 5)
 # Construct the confusion matrix: conf
 conf <- table(test_labels, knn_pred)
-
 print(conf)
-# Estimate the test error rate
 mean(knn_pred != test_labels)
-# we get an error rate of 26.1%
+
 ```
 Perform the classification using Random forest.
 ```{r }
@@ -272,27 +286,45 @@ plot(ROC, col = "red")
 auc(ROC)
 ```
 Compare the respective train and test error performances to select one of these approaches.
-```{r }
-# KNN
-# We have an error rate of 26.1 % with Knn
+```{r Compare the respective train and test error performances to select one of these approaches}
 
-# Logistic Regression
-# We get an acc rate of 0.6442497/ error rate of 35.6% for 
 
 # List of predictions
-preds_list <- list(knn_pred, glm.pred, defaulted_RF_pred)
+glm.pred.roc <- as.integer(glm.pred)
+glm.pred.roc1 <- head(glm.pred, -1)
+glm.pred.roc1 <- as.integer(glm.pred.roc1)
+
+# Getting the mean  error rate for all models
+
+# KNN 1
+mean(knn_pred != test_labels)
+# We have an error rate of 20.27 % with Knn = 1
+
+# KNN 5
+mean(knn_5_pred != test_labels)
+# We have an error rate of 19.38 % with Knn = 5
+
+# Logistic Regression
+mean(glm.pred.roc1 != test_labels)
+# We have an rror rate of 35.6% for with Logistic Regression
+
+
+# missmatch in number of items, removing last one of glm.pred to match the numbers with knn_pred
+knn_pred_roc <- as.double(knn_pred)
+
+preds_list <- list(knn_pred, knn_5_pred, glm.pred.roc1) # add defaulted_RF_pred
 
 # List of actual values (same for all)
 m <- length(preds_list)
-actuals_list <- rep(list(dataset$defaulted), m)
+actuals_list <- rep(list(test_labels), m)
 
-# Plot the ROC curves
-pred <- prediction(preds_list, test_labels)
+# Plot the ROC curves #something is wrong
+pred <- prediction(preds_list, actuals_list)
 rocs <- performance(pred, "tpr", "fpr")
-plot(rocs, col = as.list(1:m), main = "Test Set ROC Curves")
+{plot(rocs, col = as.list(1:m), main = "Test Set ROC Curves")
 legend(x = "bottomright", 
-       legend = c("Decision Tree", "Bagged Trees", "Random Forest", "GBM"),
-       fill = 1:m)
+       legend = c("knn_1_pred", "knn_5_pred", "GLM"),
+       fill = 1:m)}
 ```
 
 Perform the prediction on the validation set and compute the confusion matrix.
