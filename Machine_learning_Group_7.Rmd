@@ -164,12 +164,233 @@ sort dataset by colunm names
 
 ## Preparatory tasks:
 ### Create a copy of your dataset, eliminating the entries that have an “na” in the interest rate variable int_rate. (Interest rate is used as output variable).
+## Initialization
+
+```{r initialization, message=FALSE, warning=FALSE, results="hide"}
+source(file = "functions.R")
+func_init_env()
+```
+
+```{r loading Rds file, results="hide"}
+dataset <- func_data_load()
+```
+
+```{r preprocessing, echo=TRUE}
+dataset <- func_data_prep(dataset)
+
+sessionInfo()
+```
 ### Apply the “validation set approach” to reserve a meaningful amount of data for the test phase.
+```{r validation set approach, cache=TRUE}
+# setting a seed for reproducability
+set.seed(7)
+# We randomly split our dataframe in a train and test set
+trainRows = sample(1:nrow(dataset),0.5*nrow(dataset))
+testRows = nrow(dataset) - trainRows
+train = dataset[trainRows,]
+test = dataset[testRows,]
+# creating a small subset of data for quickly that models are runnining whithout any issues.
+# This won't be used for the analysis
+small_trainRows = sample(1:nrow(dataset),0.1*nrow(dataset))
+small_testRows = sample(nrow(dataset) - small_trainRows,0.1*nrow(dataset))
+small_train = dataset[small_trainRows,]
+small_test = dataset[small_testRows,]
+```
 ### Using one of the approaches for model selection discussed in class, reduce the number of predictors. For interpretability reasons, start with approaches that conserve the original predictor space. If any useful significant subset is possible, use a base transformation.
+
 ### Compute the correlation matrix for the selected set of predictors and the output variable, if useful, also using graphical representation.
- 
+
+
+## Data Exploration
+```{r Data Exploration - interest rate vs loan amount}
+# plotting the loan amount vs the interest rate
+{ggplot(data = dataset, mapping = aes(loan_amnt, int_rate)) +
+  geom_point()}
+# from this visualisation we can't see any clear correlation.
+```
+
+```{r Data Exploration - interest rate vs term}
+# plotting the loan amount vs the term
+{ggplot(data = dataset, mapping = aes(term, int_rate)) +
+  geom_boxplot()}
+# Here we can see that the interest rate is generaly higher for 60 months loans and lower for 36 months loans.
+```
+
+```{r Data Exploration - interest rate vs grade}
+# plotting the loan amount vs the grade
+{ggplot(data = dataset, mapping = aes(factor(sub_grade), int_rate), group = 2) +
+  geom_boxplot()}
+# The sub_grade seems to have a strong influence on the interest rate
+```
+
+```{r Data Exploration - interest rate vs home ownership}
+# plotting the loan amount vs home ownership
+{ggplot(data = dataset, mapping = aes(factor(home_ownership), int_rate), group = 2) +
+  geom_boxplot()}
+# Here we can see that the interest rate is quite close to each other between home_ownership.
+```
+
+```{r Data Exploration - interest rate vs verification_status}
+# plotting the loan amount vs verification_status
+{ggplot(data = dataset, mapping = aes(factor(verification_status), int_rate), group = 2) +
+  geom_boxplot()}
+# The verification_status seems to also have an influence on the interest rate.
+
+```
+
+```{r Data Exploration - interest rate vs emp_title}
+# plotting the loan amount vs verification_status
+{ggplot(data = dataset, mapping = aes(factor(emp_title), int_rate), group = 2) +
+  geom_boxplot()}
+# The emp_title ????
+
+```
+```{r Data Exploration lm, cache=TRUE}
+# lm on the whole dataset
+if (exists(x = "lmp.fit") == FALSE){
+readRDS("int_rate_lmp_fit")}
+   else
+lmp.fit=lm(int_rate~.,data = subset(dataset, select=c(-id_2)))
+
+summary(lmp.fit)
+plot(lmp.fit)
+#removing features that do not have at least a 0.001 P value
+dataset <- subset(dataset, select = -c(annual_inc, dti, earliest_cr_line,total_pymnt, total_rec_prncp, total_rec_int, total_rec_late_fee, recoveries, acc_open_past_24mths, avg_cur_bal, bc_open_to_buy, delinq_amnt, mo_sin_old_rev_tl_op, mo_sin_rcnt_rev_tl_op, mort_acc, num_il_tl, pct_tl_nvr_dlq, tax_liens, total_bal_ex_mort, total_bc_limit, total_il_high_credit_limit, num_actv_bc_tl, mo_sin_rcnt_tl))
+
+# Donig a second round to see if further variables can be removed.
+summary(lmp.fit)
+lmp.fit=lm(int_rate~.,data = subset(dataset, select=c(-id_2)))
+
+#removing features that do not have at least a 0.001 P value
+
+dataset <- subset(dataset, select = -c(hardship_reason, inq_last_6mths, num_actv_rev_tl, percent_bc_gt_75, tot_hi_cred_lim))
+                  
+lmp.fit=lm(int_rate~.,data = subset(dataset, select=c(-id_2)))
+summary(lmp.fit)
+
+dataset <- subset(dataset, select = -c(bc_util))
+                  
+}}}
+
+```
+
+```{r}
+lm.fit2=lm(int_rate~poly(sub_grade,2),data=dataset)
+lm.fit4=lm(int_rate~poly(sub_grade,4),data=dataset)
+lm.fit5=lm(int_rate~poly(sub_grade,5),data=dataset)
+lm.fit6=lm(int_rate~poly(sub_grade,6),data=dataset)
+lm.fit10=lm(int_rate~poly(sub_grade,10),data=dataset)
+anova(lm.fit,lm.fit2,lm.fit4,lm.fit5,lm.fit6,lm.fit10, na.action = na.omit)
+
+```
 ## Main task:
 ### Compare three different methods to perform regression, using the cross-validation method to compute the best parameters. Consider using some regularization for the parameters shrinkage. Test the train error rate, the CV error rate and the test error.
+
+```{r stepwise model, results = FALSE, cache=TRUE, include=FALSE}
+
+# should we use a gaussian model here?
+null_model <- glm(int_rate ~ 1, data = subset(dataset[small_trainRows,], select=c(-id_2)), family = "gaussian")
+
+# Specify the partial model using a subset of the potential predictors
+partial_model <- glm(int_rate ~ ., data=subset(dataset[small_trainRows,], select=c(-id_2)), family = "gaussian")
+
+#  -emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date
+
+# This is taking too much time to process, stoped this at the 12th perdictor.
+# Use a forward stepwise algorithm to build a parsimonious model
+step_model <- step(null_model, scope = list(lower = null_model, upper = partial_model), direction = "forward", trace = 1)
+# #  int_rate ~ sub_grade + all_util + loan_status + total_pymnt +
+#     installment + initial_list_status + total_pymnt_inv + verification_status +
+#     loan_amnt + term + out_prncp_inv + inq_fi + last_pymnt_amnt +
+#     num_tl_op_past_12m + open_rv_12m + open_il_12m + sec_app_revol_util +
+#     num_bc_tl + out_prncp + max_bal_bc + pub_rec + total_bc_limit +
+#     open_acc + num_sats + purpose + total_rec_prncp
+
+# Estimate the stepwise probability
+step_prob <- predict(step_model, type = "response")
+
+# getting the step response
+step_response <- dataset[small_testRows,]$int_rate
+
+# MAPE
+MAPE(step_prob, step_response)
+```
+
+```{r stepwise model Both direction elimination , results = FALSE, cache=TRUE}
+# should we use a gaussian model here?
+null_model <- glm(int_rate ~ 1, data = subset(dataset[small_trainRows,], select=c(-id_2)), family = "gaussian")
+
+# Specify the partial model using a subset of the potential predictors
+partial_model <- glm(int_rate ~ ., data=subset(dataset[small_trainRows,], select=c(-id_2)), family = "gaussian")
+
+step_model <- step(null_model, scope = list(lower = null_model, upper = partial_model), direction = "both", trace = 1)
+
+saveRDS(step_model,"step_model_both")
+# Estimate the stepwise probability for the test set.
+step_prob <- predict(step_model, type = "response")
+step_test_response <- dataset[small_testRows,]$int_rate
+
+step_prob <- predict(step_model, type = "response")
+step_train_response <- dataset[small_trainRows,]$int_rate
+# MAPE for test set
+MAPE(step_prob, step_test_response)
+# MAPE for train set
+MAPE(step_prob, step_train_response)
+
+```
+
+```{r, Ridge regression, results=FALSE}
+library (car)
+library (ridge)
+library(lmridge)
+vif(step_model)
+model_testing <-lm(int_rate ~ sub_grade + out_prncp + open_acc + mo_sin_rcnt_rev_tl_op + total_rec_int +pct_tl_nvr_dlq + num_il_tl, data=small_train, na.action = na.omit)
+predicted <- predict (model_testing, data=small_test)  # predict on test data
+compare <- cbind (small_test$int_rate, predicted)  # combine actual and predicted
+mean (apply(compare, 1, min)/apply(compare, 1, max))
+linRidgeMod <- linearRidge(int_rate ~ sub_grade + out_prncp + open_acc + mo_sin_rcnt_rev_tl_op + total_rec_int +pct_tl_nvr_dlq + num_il_tl, data = small_train)
+summary(linRidgeMod)
+predicted <- predict(linRidgeMod, small_test)  # predict on test data
+compare <- cbind (actual=small_test$int_rate, predicted)  # combine
+mean (apply(compare, 1, min)/apply(compare, 1, max))
+```
+
+```{r Random Forest, results= False, cache=TRUE}
+int_rate_RF <-  foreach(ntree=rep(125, 4), .combine=combine, .packages='randomForest')
+
+int_rate_RF <- randomForest(int_rate ~., data=dataset, subset = small_trainRows, importance=TRUE, do.trace = TRUE)
+
+int_rate_RF
+summary(int_rate_RF)
+
+class.error
+plot(int_rate_RF)
+fitted.int_rate=predict(int_rate_RF)
+
+int_rate_RF_pred <- predict(int_rate_RF, newdata = dataset[small_testRows,])
+view(int_rate_RF_pred)
+table(int_rate_RF_pred, small_test$int_rate)
+response_int_rate <- dataset[small_trainRows,]$int_rate
+ROC <- roc(int_rate_RF_pred, response_int_rate)
+plot(ROC, col = "red")
+auc(ROC)
+MAPE()
+saveRDS(int_rate_RF, file = "int_rate_RF")
+```
+```{r Random Forest Ranger, cache= TRUE}
+model2 <- train(int_rate ~ sub_grade, data = dataset[small_trainRows,], method = "ranger")
+plot(model2)
+```
+
+
+```{r, Logistic regression, results=False}
+
+fit_glm <- glm(int_rate ~. , data=subset(dataset, select=c(-id_2), family = binomial))
+summary(fit_glm)
+glm.probs <- predict(fit_glm, type = "response")
+glm.probs[1:5]
+#No idea how to interpet it
+```
   
    
 # Part 2 - Classification Analysis
