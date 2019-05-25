@@ -55,7 +55,11 @@ table(dataset$defaulted)
 ```
 
 ```{r}
+
 #dataset <- dummy.data.frame(dataset, names = c("application_type","debt_settlement_flag", "disbursement_method","hardship_flag","hardship_loan_status","hardship_type","home_ownership","initial_list_status","purpose","term", "settlement_status"))
+
+
+
 
 #dataset <- dummy.data.frame(dataset, names = c("hardship_reason", "hardship_status","pymnt_plan", "settlement_status", "verification_status", "verification_status_joint"))
 ```
@@ -181,7 +185,12 @@ fit.rf<-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp
                preProc = c("zv","center","scale"))
 ```
 
+<<<<<<< HEAD
 ## Perform the prediction on the validation set and compute the confusion matrix.
+=======
+# Make predictions using knn: pred
+knn_pred <- knn(train = knn_train, test = knn_test, cl = train_labels, k = 1)
+>>>>>>> c82224ebe9a502b098c5dc0de4b3d3b6e35c5ac9
 
 ```{r Perform Confusion Matrix for each method, include=FALSE}
 
@@ -211,14 +220,3 @@ roc(test.data$defaulted, as.numeric(predict(fit.dtree, test.data)), plot=TRUE, l
 plot.roc(test.data$defaulted, as.numeric(predict(fit.rf, test.data)), percent=TRUE, col="#b8377e", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=70, print.auc.x=30)
 
 plot.roc(test.data$defaulted, as.numeric(predict(fit.dtree, test.data)), percent=TRUE, col="#b87137", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=60, print.auc.x=30)
-
-plot.roc(test.data$defaulted, as.numeric(predict(fit.knn, test.data)), percent=TRUE, col="#7eb837", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=50, print.auc.x=30)
-
-legend("bottomright", legend=c("Decission Tree", "Random Forest", "Logisitic Regression", "KNN"), col=c("#377eb8", "#b8377e", "#b87137", "#7eb837"), lwd=4)
-```
- 
-## Conceptually compare your approach with a solution existing for this problem. (Default
-prediction is a very well-known problem in literature).
-```{r }
-
-```
