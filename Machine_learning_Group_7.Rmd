@@ -67,33 +67,25 @@ dataset <- readRDS(file = "dataset_7.Rds")
 # General Exploration
 
 
+# Data Preprocessing 
 
-# Data Preprocessing
+Preprocess the dataset, remove colums, check for na ... 
 
-sort dataset by colunm names
+```{r}
+  
+  # sort dataset by colunm names, to facilite search
   dataset = dataset[ , order(names(dataset))]
-  
-  #removing policy_code because always equals 1
-  dataset = subset(dataset, select = -c(policy_code) )
-  
   
   # Removing columns that have > 0.05 NAs
   dataset <- dataset[, -which(colMeans(is.na(dataset)) > 0.05)]
   
-  # Omiting columns that only have NAs, ie. id and member_id.
-  dataset <- dataset[,colSums(is.na(dataset))<nrow(dataset)]
-  
-  # we remove desc as it is descrbing the purpose of the loan given it's unstructured data we can't do much about it.
-  # Given we have a status column and date for all the factors that 
-  # emp_title has too many levels to be used 
-  # zip_code has too many levels and is a covariance of addr_state, thus we can remove it.
-  
-  # Too keep: earliest_cr_line could be an interesting variable to dummy code, we could transform it to only hold the year and make it a numerical value. same is true for sec_app_earliest_cr_line
+  # remove some columsn because of the reasons below 
+  # to many levels: zip_code, emp_title
+  # not_relevant: desc, id_2, addr_state, last_pymnt_d, next_pymnt_d, issue_d, title, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date
+  # same data in every colum: policy_code
+  # covariance: grade (of sub_grade)
 
-  # last_pymnt_d and next_pymnt_d will be removed
-  # addr_state is remove as it's not significant
-  # grade is remove as it's a covariance of sub_grade
-  dataset <- subset(dataset, select = -c(id_2, desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
+  dataset <- subset(dataset, select = -c(id_2, policy_code, desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
 
   # sub_grade has more than 32 levels which is a hard limit for random forest.
   # We'll dummy code it to circument this
@@ -156,6 +148,9 @@ sort dataset by colunm names
   
   return(dataset)
 
+
+
+```
 
 
 -----------
