@@ -8,7 +8,7 @@ output:
     df_print: paged
 ---
 
-## Initialization
+# Initialization
 
 ```{r initialization, results="hide"}
 source(file = "functions.R")
@@ -23,9 +23,9 @@ dataset <- func_data_load()
 dataset <- func_data_prep(dataset)
 ```
 
-## Preprocessing
+# Preparatory tasks
 
-```{r concluded loans results= FALSE}
+```{r, results= FALSE}
 # Make a data.table
 setDT(dataset)
 
@@ -38,21 +38,26 @@ dataset$defaulted[dataset$loan_status != "Fully Paid"] <- 1
 # Chaning levels of defaulted to have "Default" and "Paying"
 levels(dataset$defaulted) = c(1, 0)
 
-# Change all the defaulted values that aren't "Default" to 
+# Change all the defaulted values that aren't "Default" to 0
 dataset$defaulted[is.na(dataset$defaulted)] <- 0
 
-# Remove unused factor levels
-dataset$defaulted <- factor(dataset$defaulted)
+# remove dependent variable, because now defaulted exists
+dataset$loan_status <- NULL
 
+# set defaulted as factor
+dataset$defaulted <- as.factor(dataset$defaulted)
+
+#show defaulted vs non defaulted
+table(dataset$defaulted)
 
 # # Removing Feature 
 # dataset <- subset(dataset, select = -c(hardship_type, hardship_status, hardship_loan_status,settlement_status, verification_status_joint, hardship_flag, disbursement_method, debt_settlement_flag, application_type, purpose, pymnt_plan, verification_status, home_ownership, initial_list_status, term))
 ```
 
 ```{r}
-dataset <- dummy.data.frame(dataset, names = c("application_type","debt_settlement_flag", "disbursement_method","hardship_flag","hardship_loan_status","hardship_type","home_ownership","initial_list_status","loan_status","purpose","term", "settlement_status"))
+#dataset <- dummy.data.frame(dataset, names = c("application_type","debt_settlement_flag", "disbursement_method","hardship_flag","hardship_loan_status","hardship_type","home_ownership","initial_list_status","purpose","term", "settlement_status"))
 
-dataset <- dummy.data.frame(dataset, names = c("hardship_status","pymnt_plan", "settlement_status", "verification_status", "verification_status_joint"))
+#dataset <- dummy.data.frame(dataset, names = c("hardship_reason", "hardship_status","pymnt_plan", "settlement_status", "verification_status", "verification_status_joint"))
 ```
 
 ## Create Train and Testset
@@ -73,9 +78,11 @@ test_smallIndex   <- sample(1:nrow(test.data), 1000)
 
 small_train <- dataset[train_smallIndex,]
 small_test  <- dataset[test_smallIndex,]
+
+train.data <- small_train
+test.data  <- small_test
 ```
 
-# https://www.r-bloggers.com/partial-least-squares-in-r/
 ```{r}
 # Compile cross-validation settings
 set.seed(100)
@@ -84,7 +91,11 @@ control <- trainControl("repeatedcv", index = myfolds, selectionFunction = "oneS
  
 ```
 
-#Perform Partial Least Squares Regression
+
+# Main tasks:
+## Use Principal Component Analysis for base transformation and then compare it with the Partial Least Squares Regression result. Select the best base with cross validation, using the better of the two approaches.
+
+##Perform Partial Least Squares Regression
 ```{r}
 
 # Train PLS model
@@ -95,9 +106,11 @@ mod1 <- train(defaulted ~ ., data = train.data,
  trControl = control,
  preProc = c("zv","center","scale"))
 
+plot(mod1)
+
 ```
 
-#Perform Principal Component Analysis 
+##Perform Principal Component Analysis 
 ```{r}
 # PCA-DA
 mod2 <- train(defaulted ~ ., data = train.data,
@@ -105,203 +118,106 @@ method = "lda",
 metric = "Accuracy",
 trControl = control,
 preProc = c("zv","center","scale","pca"))
- 
-plot(mod1)
-
 ```
 
-# Compile models and compare performance
+## Compile models and compare performance
 ```{r, message=FALSE, warning=FALSE, results="hide"}
 
 models <- resamples(list("PLS-DA" = mod1, "PCA-DA" = mod2))
 bwplot(models, metric = "Accuracy")
 
-plot(varImp(mod1), 10, main = "PLS-DA")
-plot(varImp(mod2), 10, main = "PCA-DA")
+plot(varImp(mod1), mod1$bestTune$ncomp, main = "PLS-DA")
+#plot(varImp(mod2), 5, main = "PCA-DA")
+
+```
+```{r eval=FALSE, results="hide"}
+#Limit dataset to relevant variables from PLS
+total_rec_prncp, recoveries, collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term
+
+train.data <- subset(train.data, select = c(defaulted, total_rec_prncp, recoveries, collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term))
+test.data  <- subset(test.data, select = c(defaulted, total_rec_prncp, recoveries, collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term))
+```
+
+## Perform the classification using KNN, Logistic Regression, Decision tree and Random forest.
+
+```{r Perform KNN with caret, include=FALSE}
+
+fit.knn  <- train(defaulted ~ ., 
+                data = train.data, 
+                method = "knn",
+                trControl = control,
+                preProc = c("zv","center","scale")
+                ) 
 
 ```
 
-```{r}
-lm.fit <- lm(defaulted ~., data = dataset, type = binomial)
-
-lm.fit <- lm(defaulted ~., data = subset(dataset, select = -c(loan_status)))
-summary(lm.fit)
-```
-Perform the classification using Decision tree.
-```{r Fit a regression tree to predict the defaulted status}
-tree.defaulted<- tree(defaulted ~., data = subset(dataset, select = -c(id_2)))
-summary(tree.defaulted)
-plot(tree.defaulted)
-text(tree.defaulted, cex = 0.75)
-# The text isn't showing up
-```
-Perform the classification using Logistic Regression.
-```{r classification using Logistic Regression, results= FALSE}
-# Setting Seed
-set.seed(7)
-# Creating a Generalized Linear Model
-fit_glm_defaulted <- glm(defaulted ~., family = binomial(link = "logit"), data= small_train, na = na.omit)
-
-# Summary of theeneralized Linear Model
-summary(fit_glm_defaulted)
-
-# Anova
-# anova(fit_glm_defaulted, test="Chisq")
-# The model could not converge, meaning that we should improve our variable selection.
-
-# creating predictions for the Generalized Linear Model
-glm.probs <- predict(fit_glm_defaulted, type = "response")
-glm.probs[1:5]
-
-# setting if the prob is higher than 0.5 = 1 (defaulted), if bellow = 0 (Paying)
-glm.pred <- ifelse(glm.probs > 0.5, "1", "0")
-
-# Calculating the mean of preds == response
-mean(glm.pred == defaulted_int_rate)
-
-# We get an acc rate of 0.6442497/ error rate of 35.6%
-
-```
-Perform the classification using Logistic Regression.
-```{r classification using Logistic Regression with manual factor selection}
-# Setting Seed
-set.seed(7)
-# Creating a Generalized Linear Model
-fit_glm_defaulted <- glm(defaulted ~ sub_grade + collection_recovery_fee + hardship_loan_status , family = binomial(link = "logit"), data= small_train, na = na.omit)
-
-# Summary of theeneralized Linear Model
-summary(fit_glm_defaulted)
-
-# Anova
-anova(fit_glm_defaulted, test="Chisq")
-# The model could not converge, meaning that we should improve our variable selection.
-
-# creating predictions for the Generalized Linear Model
-glm.probs <- predict(fit_glm_defaulted, type = "response")
-glm.probs[1:5]
-
-# setting if the prob is higher than 0.5 = 1 (defaulted), if bellow = 0 (Paying)
-glm.pred <- ifelse(glm.probs > 0.5, "1", "0")
-
-# Calculating the mean of preds == response
-mean(glm.pred == defaulted_int_rate)
-
-# We get an acc rate of 0.6952841 which is better than the larger model.
-
-```
-Perform the classification using KNN.
-```{r k-NN, cache = TRUE}
-# Set random seed.
-set.seed(7)
-
-# Creating test and train labels
-train_labels <- small_train$defaulted
-test_labels <- small_test$defaulted
-
-# 
-knn_train <- small_train
-knn_test <- small_test
-
-# droping defaulted columns
-knn_train$defaulted <- NULL
-knn_test$defaulted <- NULL
-
-# Make predictions using knn: pred
-pred <- knn(train = knn_train, test = knn_test, cl = train_labels, k = 5)
-
-# Construct the confusion matrix: conf
-conf <- table(test_labels, pred)
-
-# Print out the confusion matrix
-conf
-# Something isn't right here.
-# Define range and accs
-range <- 1:round(0.2 * nrow(knn_train))
-accs <- rep(0, length(range))
-for (k in range) {
-
-  # Make predictions using knn: pred
-  knn_pred <- knn(knn_train, knn_test, train_labels, k = k)
-
-  # Construct the confusion matrix: conf
-  conf <- table(test_labels, knn_pred)
-
-  # Calculate the accuracy and store it in accs[k]
-  accs[k] <- sum(diag(conf)) / sum(conf)
-}
-# Plot the accuracies.
-plot(range, accs, xlab = "k")
-
-# Calculate the best k
-which.max(accs)
-# best k = 75
-
-# Estimate the test error rate
-mean(knn_pred != test_labels)
-
-# Fit the k-NN model with k=75
-set.seed(7)
-pred <- knn(train = knn_train, test = knn_test, cl = train_labels, k = 75)
-# Construct the confusion matrix: conf
-conf <- table(test_labels, knn_pred)
-
-print(conf)
-# Estimate the test error rate
-mean(knn_pred != test_labels)
-# we get an error rate of 26.1%
-```
-Perform the classification using Random forest.
-```{r }
-# Set random seed.
-set.seed(7)
-
-defaulted_RF <-  foreach(ntree=rep(125, 4), .combine=combine, .packages= c('magrittr', 'randomForest')) %dopar% {
-defaulted_RF <- randomForest(defaulted ~. , data=dataset , subset =  small_trainRows, importance=TRUE, do.trace = TRUE, ntree=ntree)
- }
-defaulted_RF
-summary(defaulted_RF)
-plot(defaulted_RF)
-fitted.int_rate=predict(defaulted_RF)
-
-defaulted_RF_pred <- predict(defaulted_RF, newdata = dataset[small_testRows,])
-view(defaulted_RF_pred)
-
-defaulted_int_rate <- small_train$defaulted
-ROC <- roc(defaulted_RF_pred, defaulted_int_rate)
-plot(ROC, col = "red")
-auc(ROC)
-```
-Compare the respective train and test error performances to select one of these approaches.
-```{r }
-# KNN
-# We have an error rate of 26.1 % with Knn
-
-# Logistic Regression
-# We get an acc rate of 0.6442497/ error rate of 35.6% for 
-
-# List of predictions
-preds_list <- list(knn_pred, glm.pred, defaulted_RF_pred)
-
-# List of actual values (same for all)
-m <- length(preds_list)
-actuals_list <- rep(list(dataset$defaulted), m)
-
-# Plot the ROC curves
-pred <- prediction(preds_list, test_labels)
-rocs <- performance(pred, "tpr", "fpr")
-plot(rocs, col = as.list(1:m), main = "Test Set ROC Curves")
-legend(x = "bottomright", 
-       legend = c("Decision Tree", "Bagged Trees", "Random Forest", "GBM"),
-       fill = 1:m)
-```
-
-Perform the prediction on the validation set and compute the confusion matrix.
-```{r }
-# KNN
+```{r Perform Logistic Regression with caret, include=FALSE}
+## Logistic regression
+fit.lreg <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
+                data = train.data, 
+                method = "glm",
+                trControl = control,
+                family=binomial(),
+                preProc = c("zv","center","scale")
+                ) 
 
 ```
 
-Conceptually compare your approach with a solution existing for this problem. (Default
+```{r Perform Decision tree with caret, include=FALSE}
+## decision tree 
+fit.dtree<-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
+               data=train.data,
+               method="ctree",
+               trControl = control,
+               preProc = c("zv","center","scale"))
+```
+
+```{r Perform Random Forest with caret, include=FALSE}
+## random forest 
+fit.rf<-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
+               data=train.data,
+               method="rf",
+               trControl = control,
+               preProc = c("zv","center","scale"))
+```
+
+## Perform the prediction on the validation set and compute the confusion matrix.
+
+```{r Perform Confusion Matrix for each method, include=FALSE}
+
+#Confusion Matrix KNN
+confusionMatrix( predict(fit.knn), train.data$defaulted)              #Train
+confusionMatrix( predict(fit.knn, test.data), test.data$defaulted)    #Test
+
+#Confusion Matrix Logistic Regression
+confusionMatrix( predict(fit.lreg), train.data$defaulted)             #Train
+confusionMatrix( predict(fit.lreg, test.data), test.data$defaulted)   #Test
+
+#Confusion Matrix Decision Trees
+confusionMatrix( predict(fit.dtree), train.data$defaulted)            #Train
+confusionMatrix( predict(fit.dtree, test.data), test.data$defaulted)  #Test
+
+#Confusion Matrix Random Forest
+confusionMatrix( predict(fit.rf), train.data$defaulted)               #Train
+confusionMatrix( predict(fit.rf, test.data), test.data$defaulted)     #Test
+```
+
+## Compare the respective train and test error performances to select one of these approaches.
+
+```{r ROC Plot}
+par(pty = "s")
+roc(test.data$defaulted, as.numeric(predict(fit.dtree, test.data)), plot=TRUE, legacy.axes=TRUE, percent=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, print.auc = TRUE, print.auc.y=80, print.auc.x=30)
+
+plot.roc(test.data$defaulted, as.numeric(predict(fit.rf, test.data)), percent=TRUE, col="#b8377e", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=70, print.auc.x=30)
+
+plot.roc(test.data$defaulted, as.numeric(predict(fit.dtree, test.data)), percent=TRUE, col="#b87137", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=60, print.auc.x=30)
+
+plot.roc(test.data$defaulted, as.numeric(predict(fit.knn, test.data)), percent=TRUE, col="#7eb837", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=50, print.auc.x=30)
+
+legend("bottomright", legend=c("Decission Tree", "Random Forest", "Logisitic Regression", "KNN"), col=c("#377eb8", "#b8377e", "#b87137", "#7eb837"), lwd=4)
+```
+ 
+## Conceptually compare your approach with a solution existing for this problem. (Default
 prediction is a very well-known problem in literature).
 ```{r }
 
