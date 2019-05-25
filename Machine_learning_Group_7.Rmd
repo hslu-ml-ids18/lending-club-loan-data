@@ -71,18 +71,18 @@ dataset <- readRDS(file = "dataset_7.Rds")
 
 # Data Preprocessing
 
-sort dataset_reg by colunm names
-  dataset_reg = dataset_reg[ , order(names(dataset_reg))]
+sort dataset by colunm names
+  dataset = dataset[ , order(names(dataset))]
   
   #removing policy_code because always equals 1
-  dataset_reg = subset(dataset_reg, select = -c(policy_code) )
+  dataset = subset(dataset, select = -c(policy_code) )
   
   
   # Removing columns that have > 0.05 NAs
-  dataset_reg <- dataset_reg[, -which(colMeans(is.na(dataset_reg)) > 0.05)]
+  dataset <- dataset[, -which(colMeans(is.na(dataset)) > 0.05)]
   
   # Omiting columns that only have NAs, ie. id and member_id.
-  dataset_reg <- dataset_reg[,colSums(is.na(dataset_reg))<nrow(dataset_reg)]
+  dataset <- dataset[,colSums(is.na(dataset))<nrow(dataset)]
   
   # we remove desc as it is descrbing the purpose of the loan given it's unstructured data we can't do much about it.
   # Given we have a status column and date for all the factors that 
@@ -94,68 +94,68 @@ sort dataset_reg by colunm names
   # last_pymnt_d and next_pymnt_d will be removed
   # addr_state is remove as it's not significant
   # grade is remove as it's a covariance of sub_grade
-  dataset_reg <- subset(dataset_reg, select = -c(id_2, desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
+  dataset <- subset(dataset, select = -c(id_2, desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
 
   # sub_grade has more than 32 levels which is a hard limit for random forest.
   # We'll dummy code it to circument this
-  levels_sub_grade <- levels(dataset_reg$sub_grade)
-  dataset_reg$sub_grade<- as.numeric(mapvalues(dataset_reg$sub_grade, levels_sub_grade, seq(from = 1, to = 35, by = 1)))
-  levels(dataset_reg$sub_grade)
+  levels_sub_grade <- levels(dataset$sub_grade)
+  dataset$sub_grade<- as.numeric(mapvalues(dataset$sub_grade, levels_sub_grade, seq(from = 1, to = 35, by = 1)))
+  levels(dataset$sub_grade)
   
   # sorting emp_lenght, and dummy coding.
-  levels_emp_length <- levels(dataset_reg$emp_length)
-  dataset_reg$emp_length <- ordered(dataset_reg$emp_length, levels = c("n/a", "< 1 year", "1 year", "2 years", "3 years","4 years", "5 years","6 years", "7 years", "8 years", "9 years", "10+ years"))
-  levels(dataset_reg$emp_length)
-  dataset_reg$emp_length <- as.numeric(mapvalues(dataset_reg$emp_length, levels_emp_length, c(-1, seq(from = 0, to = 10, by = 1))))
-  levels(dataset_reg$emp_length)
+  levels_emp_length <- levels(dataset$emp_length)
+  dataset$emp_length <- ordered(dataset$emp_length, levels = c("n/a", "< 1 year", "1 year", "2 years", "3 years","4 years", "5 years","6 years", "7 years", "8 years", "9 years", "10+ years"))
+  levels(dataset$emp_length)
+  dataset$emp_length <- as.numeric(mapvalues(dataset$emp_length, levels_emp_length, c(-1, seq(from = 0, to = 10, by = 1))))
+  levels(dataset$emp_length)
   
   # grouping earliest_cr_line by year
-  dataset_reg$earliest_cr_line <- as.integer(substring(dataset_reg$earliest_cr_line, 5))
+  dataset$earliest_cr_line <- as.integer(substring(dataset$earliest_cr_line, 5))
   
   # grouping earliest_cr_line by year
-  dataset_reg$sec_app_earliest_cr_line <- as.integer(substring(as.character(dataset_reg$sec_app_earliest_cr_line), 5))
-  dataset_reg$sec_app_earliest_cr_line[is.na(dataset_reg$sec_app_earliest_cr_line)] <- -1
-  typeof(dataset_reg$sec_app_earliest_cr_line)
-  levels(dataset_reg$sec_app_earliest_cr_line)
+  dataset$sec_app_earliest_cr_line <- as.integer(substring(as.character(dataset$sec_app_earliest_cr_line), 5))
+  dataset$sec_app_earliest_cr_line[is.na(dataset$sec_app_earliest_cr_line)] <- -1
+  typeof(dataset$sec_app_earliest_cr_line)
+  levels(dataset$sec_app_earliest_cr_line)
   
-  levels(dataset_reg$total_rec_late_fee)
+  levels(dataset$total_rec_late_fee)
   
-  na_count <-sapply(dataset_reg, function(y) sum(length(which(is.na(y)))))
+  na_count <-sapply(dataset, function(y) sum(length(which(is.na(y)))))
   
-  # changing the dataset_reg as a tbl object.
-  dataset_reg <- as.tbl(dataset_reg)
+  # changing the dataset as a tbl object.
+  dataset <- as.tbl(dataset)
   # change NAs to 0 in integer columns
-  dataset_reg <- mutate_if(dataset_reg, is.integer, ~replace(., is.na(.), -1))
+  dataset <- mutate_if(dataset, is.integer, ~replace(., is.na(.), -1))
   # change NAs to 0 in doubles columns
   
-  dataset_reg <- mutate_if(dataset_reg, is.numeric, ~replace(., is.na(.), -1))
+  dataset <- mutate_if(dataset, is.numeric, ~replace(., is.na(.), -1))
   # change NAs to 0 in strings columns
   
-  dataset_reg <- mutate_if(dataset_reg, is.character, ~replace(., is.na(.), "NA"))
+  dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
   
   # change NAs to 0 in strings columns
   
-  # dataset_reg <- mutate_if(dataset_reg, is.factor, ~replace(., is.na(.), "NA"))
+  # dataset <- mutate_if(dataset, is.factor, ~replace(., is.na(.), "NA"))
   
   # change columns to character¨
-  # dataset_reg$hardship_type <- as.character(dataset_reg$hardship_type)
-  # dataset_reg$hardship_reason <- as.character(dataset_reg$hardship_reason)
-  # dataset_reg$hardship_status <- as.character(dataset_reg$hardship_status)
-  # dataset_reg$hardship_loan_status <- as.character(dataset_reg$hardship_loan_status)
-  # dataset_reg$settlement_status <- as.character(dataset_reg$settlement_status)
-  # dataset_reg$verification_status_joint <- as.character(dataset_reg$verification_status_joint)
+  # dataset$hardship_type <- as.character(dataset$hardship_type)
+  # dataset$hardship_reason <- as.character(dataset$hardship_reason)
+  # dataset$hardship_status <- as.character(dataset$hardship_status)
+  # dataset$hardship_loan_status <- as.character(dataset$hardship_loan_status)
+  # dataset$settlement_status <- as.character(dataset$settlement_status)
+  # dataset$verification_status_joint <- as.character(dataset$verification_status_joint)
   # 
   # change empty character columns to "NA"
   # 
-  dataset_reg <- mutate_if(dataset_reg, is.character, ~replace(., is.na(.), "NA"))
+  dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
   # 
   
   # calculating the number of unique levels per column
-  sapply(dataset_reg, function(col) length(unique(col)))
+  sapply(dataset, function(col) length(unique(col)))
   
-  na_count <-sapply(dataset_reg, function(y) sum(length(which(is.na(y)))))
+  na_count <-sapply(dataset, function(y) sum(length(which(is.na(y)))))
   
-  return(dataset_reg)
+  return(dataset)
 
 
 
@@ -164,12 +164,12 @@ sort dataset_reg by colunm names
 # Part 1 - Regression Analysis
 
 ## Preparatory tasks:
-### Create a copy of your dataset_reg, eliminating the entries that have an “na” in the interest rate variable int_rate. (Interest rate is used as output variable).
+### Create a copy of your dataset, eliminating the entries that have an “na” in the interest rate variable int_rate. (Interest rate is used as output variable).
 ## Initialization
 
 ```{r preprocessing, echo=TRUE}
 # Creating a separate dataset_reg for regression
-dataset_reg_reg <- dataset_reg
+dataset_reg <- dataset
 
 ```
 ### Apply the “validation set approach” to reserve a meaningful amount of data for the test phase.
