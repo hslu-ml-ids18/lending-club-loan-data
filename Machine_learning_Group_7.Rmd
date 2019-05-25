@@ -28,7 +28,7 @@ f dsfldsjfk sajdf
   library(pacman)
 
   # install and loading required packages
-  pacman::p_load(party, dummies, ranger, data.table, rmarkdown, tidyverse, caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, pROC, class,MLmetrics, tree)
+  pacman::p_load(party, dummies, ranger, data.table, rmarkdown, tidyverse, caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, pROC, class,MLmetrics, tree, car, ridge, lmridge)
 ```
    
 
@@ -36,7 +36,7 @@ f dsfldsjfk sajdf
 
 In order to avoid to have to work with the whole original dataset from <https://www.kaggle.com/wendykan/lending-club-loan-data> dataset_7.Rds has been created as follows:
 
-```{r extract subset, eval=FALSE}
+```{r extract subset, eval=FALSE, include=FALSE}
 # load full dataset containing all loan data from 2007-2015
 loan_df <- read.csv(file = "loan.csv", header = TRUE)
 
@@ -58,7 +58,7 @@ saveRDS(dataset_7, file = "dataset_7.Rds")
 ```
 
 Read the subset of data from the previous step 
-```{r read prepared dataset_7.Rds, eval=FALSE}
+```{r read prepared dataset_7.Rds}
 
 
 dataset <- readRDS(file = "dataset_7.Rds")
@@ -79,6 +79,8 @@ Preprocess the dataset, remove colums, check for na ...
   
   # Removing columns that have > 0.05 NAs
   dataset <- dataset[, -which(colMeans(is.na(dataset)) > 0.05)]
+  dataset <- dataset[,colSums(is.na(dataset))<nrow(dataset)]
+  
   
   # remove some columsn because of the reasons below 
   # to many levels: zip_code, emp_title
@@ -146,10 +148,9 @@ Preprocess the dataset, remove colums, check for na ...
   sapply(dataset, function(col) length(unique(col)))
   
   na_count <-sapply(dataset, function(y) sum(length(which(is.na(y)))))
+
   
-  return(dataset)
-
-
+  dataset <- dataset[1:20000, ]
 
 ```
 
@@ -168,7 +169,7 @@ dataset_reg <- dataset
 
 ```
 ### Apply the “validation set approach” to reserve a meaningful amount of data for the test phase.
-```{r validation set approach, cache=TRUE}
+```{r validation set approach regression, cache=TRUE}
 # setting a seed for reproducability
 set.seed(7)
 # We randomly split our dataframe in a train and test set
@@ -188,7 +189,7 @@ small_test = dataset_reg[small_testRows,]
 ### Compute the correlation matrix for the selected set of predictors and the output variable, if useful, also using graphical representation.
 ```{r correlation matrix}
 # correlation matrix by p-value
-corrmatrix <- subset(dataset_reg, select = c(-id_2, -term, -home_ownership, -initial_list_status, -application_type, -verification_status_joint, -hardship_flag, -hardship_type, -hardship_reason, -hardship_type, -hardship_loan_status, -hardship_status, -disbursement_method, -debt_settlement_flag, -verification_status, -loan_status, -pymnt_plan, -purpose, -settlement_status))
+corrmatrix <- subset(dataset_reg, select = c(-term, -home_ownership, -initial_list_status, -application_type, -verification_status_joint, -hardship_flag, -hardship_type, -hardship_reason, -hardship_type, -hardship_loan_status, -hardship_status, -disbursement_method, -debt_settlement_flag, -verification_status, -loan_status, -pymnt_plan, -purpose, -settlement_status))
 mcor <- cor(corrmatrix)
 corrplot(mcor, type="upper", sig.level = 0.001, insig = "blank",number.font = 0)
 # correlogram combined with significance test <- only correlations that are relevant are shown in the plot
@@ -233,61 +234,25 @@ corrplot(mcor, type="upper", sig.level = 0.001, insig = "blank",number.font = 0)
 
 ```
 
-```{r Data Exploration - interest rate vs emp_title}
-# plotting the loan amount vs verification_status
-{ggplot(data = dataset_reg, mapping = aes(factor(emp_title), int_rate), group = 2) +
-  geom_boxplot()}
-# The emp_title ????
-
-```
-```{r Data Exploration lm, cache=TRUE}
-# lm on the whole dataset_reg
-if (exists(x = "lmp.fit") == FALSE){
-readRDS("int_rate_lmp_fit")}
-   else
-lmp.fit=lm(int_rate~.,data = subset(dataset_reg, select=c(-id_2)))
-
-summary(lmp.fit)
-plot(lmp.fit)
-#removing features that do not have at least a 0.001 P value
-dataset_reg <- subset(dataset_reg, select = -c(annual_inc, dti, earliest_cr_line,total_pymnt, total_rec_prncp, total_rec_int, total_rec_late_fee, recoveries, acc_open_past_24mths, avg_cur_bal, bc_open_to_buy, delinq_amnt, mo_sin_old_rev_tl_op, mo_sin_rcnt_rev_tl_op, mort_acc, num_il_tl, pct_tl_nvr_dlq, tax_liens, total_bal_ex_mort, total_bc_limit, total_il_high_credit_limit, num_actv_bc_tl, mo_sin_rcnt_tl))
-
-# Donig a second round to see if further variables can be removed.
-summary(lmp.fit)
-lmp.fit=lm(int_rate~.,data = subset(dataset_reg, select=c(-id_2)))
-
-#removing features that do not have at least a 0.001 P value
-
-dataset_reg <- subset(dataset_reg, select = -c(hardship_reason, inq_last_6mths, num_actv_rev_tl, percent_bc_gt_75, tot_hi_cred_lim))
-                  
-lmp.fit=lm(int_rate~.,data = subset(dataset_reg, select=c(-id_2)))
-summary(lmp.fit)
-
-dataset_reg <- subset(dataset_reg, select = -c(bc_util))
-                  
-}}}
-
-```
-
 ```{r}
 lm.fit2=lm(int_rate~poly(sub_grade,2),data=dataset_reg)
 lm.fit4=lm(int_rate~poly(sub_grade,4),data=dataset_reg)
 lm.fit5=lm(int_rate~poly(sub_grade,5),data=dataset_reg)
 lm.fit6=lm(int_rate~poly(sub_grade,6),data=dataset_reg)
 lm.fit10=lm(int_rate~poly(sub_grade,10),data=dataset_reg)
-anova(lm.fit,lm.fit2,lm.fit4,lm.fit5,lm.fit6,lm.fit10, na.action = na.omit)
+#anova(lm.fit,lm.fit2,lm.fit4,lm.fit5,lm.fit6,lm.fit10, na.action = na.omit)
 
 ```
 ## Main task:
 ### Compare three different methods to perform regression, using the cross-validation method to compute the best parameters. Consider using some regularization for the parameters shrinkage. Test the train error rate, the CV error rate and the test error.
 
-```{r stepwise model, results = FALSE, cache=TRUE, include=FALSE}
-
+```{r stepwise model, results = FALSE, cache=TRUE, include=FALSE, eval=FALSE}
 # should we use a gaussian model here?
-null_model <- glm(int_rate ~ 1, data = subset(dataset_reg[small_trainRows,], select=c(-id_2)), family = "gaussian")
+null_model <- glm(int_rate ~ 1, data = dataset_reg[small_trainRows,], family = "gaussian")
 
 # Specify the partial model using a subset of the potential predictors
-partial_model <- glm(int_rate ~ ., data=subset(dataset_reg[small_trainRows,], select=c(-id_2)), family = "gaussian")
+partial_model <- glm(int_rate ~ ., data= dataset_reg[small_trainRows,], family = "gaussian")
+
 
 #  -emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date
 
@@ -311,12 +276,12 @@ step_response <- dataset_reg[small_testRows,]$int_rate
 MAPE(step_prob, step_response)
 ```
 
-```{r stepwise model Both direction elimination , results = FALSE, cache=TRUE}
+```{r stepwise model Both direction elimination , results = FALSE, cache=TRUE, eval=FALSE}
 # should we use a gaussian model here?
-null_model <- glm(int_rate ~ 1, data = subset(dataset_reg[small_trainRows,], select=c(-id_2)), family = "gaussian")
+null_model <- glm(int_rate ~ 1, data = dataset_reg[small_trainRows,], family = "gaussian")
 
 # Specify the partial model using a subset of the potential predictors
-partial_model <- glm(int_rate ~ ., data=subset(dataset_reg[small_trainRows,], select=c(-id_2)), family = "gaussian")
+partial_model <- glm(int_rate ~ ., data=dataset_reg[small_trainRows,], family = "gaussian")
 
 step_model <- step(null_model, scope = list(lower = null_model, upper = partial_model), direction = "both", trace = 1)
 
@@ -334,10 +299,32 @@ MAPE(step_prob, step_train_response)
 
 ```
 
+```{r Data Exploration lm, cache=TRUE, eval=FALSE}
+# lm on the whole dataset_reg
+lmp.fit=lm(int_rate~.,data = dataset_reg)
+
+summary(lmp.fit)
+plot(lmp.fit)
+#removing features that do not have at least a 0.001 P value
+dataset_reg <- subset(dataset_reg, select = -c(annual_inc, dti, earliest_cr_line,total_pymnt, total_rec_prncp, total_rec_int, total_rec_late_fee, recoveries, acc_open_past_24mths, avg_cur_bal, bc_open_to_buy, delinq_amnt, mo_sin_old_rev_tl_op, mo_sin_rcnt_rev_tl_op, mort_acc, num_il_tl, pct_tl_nvr_dlq, tax_liens, total_bal_ex_mort, total_bc_limit, total_il_high_credit_limit, num_actv_bc_tl, mo_sin_rcnt_tl))
+
+# Donig a second round to see if further variables can be removed.
+summary(lmp.fit)
+lmp.fit=lm(int_rate~.,data = dataset_reg)
+
+#removing features that do not have at least a 0.001 P value
+
+dataset_reg <- subset(dataset_reg, select = -c(hardship_reason, inq_last_6mths, num_actv_rev_tl, percent_bc_gt_75, tot_hi_cred_lim))
+                  
+lmp.fit=lm(int_rate~.,data = dataset_reg)
+summary(lmp.fit)
+
+dataset_reg <- subset(dataset_reg, select = -c(bc_util))
+                  
+```
+
+
 ```{r, Ridge regression, results=FALSE}
-library (car)
-library (ridge)
-library(lmridge)
 vif(step_model)
 model_testing <-lm(int_rate ~ sub_grade + out_prncp + open_acc + mo_sin_rcnt_rev_tl_op + total_rec_int +pct_tl_nvr_dlq + num_il_tl, data=small_train, na.action = na.omit)
 predicted <- predict (model_testing, data=small_test)  # predict on test data
@@ -425,7 +412,7 @@ table(dataset$defaulted)
 
 ### Create a validation set. 
 
-```{r validation set approach}
+```{r validation set approach classification}
 # setting a seed for reproducability
 set.seed(7)
 
@@ -435,15 +422,6 @@ trainIndex <- sample(1:nrow(dataset),0.8*nrow(dataset))
 train.data <- dataset[trainIndex,]
 test.data  <- dataset[-trainIndex,]
 
-# creating a small subset of data for testing models
-train_smallIndex  <- sample(1:nrow(train.data), 1000)
-test_smallIndex   <- sample(1:nrow(test.data), 1000)
-
-small_train <- dataset[train_smallIndex,]
-small_test  <- dataset[test_smallIndex,]
-
-train.data <- small_train
-test.data  <- small_test
 ```
 
 ## Main tasks:
@@ -502,8 +480,6 @@ plot(varImp(mod1), mod1$bestTune$ncomp, main = "PLS-DA")
 # based on the results from PLS analysis in the step before, limit the dataset to the most relevant variables. 
 
 ```{r eval=FALSE, results="hide"}
-
-total_rec_prncp, recoveries, collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term
 
 train.data <- subset(train.data, select = c(defaulted, total_rec_prncp, recoveries, collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term))
 test.data  <- subset(test.data, select = c(defaulted, total_rec_prncp, recoveries, collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term))
