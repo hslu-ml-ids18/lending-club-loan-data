@@ -34,22 +34,22 @@ f dsfldsjfk sajdf
 
 # Data Extraction @ Alex
 
-In order to avoid to have to work with the whole original dataset from https://www.kaggle.com/wendykan/lending-club-loan-data
-dataset_7.Rds has been created as follows.
+In order to avoid to have to work with the whole original dataset_reg from https://www.kaggle.com/wendykan/lending-club-loan-data
+dataset_reg_7.Rds has been created as follows.
 
 ``` 
 loan_df <- read.csv(file = "loan.csv", header = TRUE)
 loan_df <- cbind(id_2 = rownames(loan_df), loan_df)
 rownames(loan_df) <- 1:nrow(loan_df)
 loan_df$id_2 <- as.numeric(loan_df$id_2)
-dataset_7 <- loan_df[which(loan_df$id_2%%8+1== 7),]
-saveRDS(dataset_7, file = "dataset_7.Rds")
+dataset_reg_7 <- loan_df[which(loan_df$id_2%%8+1== 7),]
+saveRDS(dataset_reg_7, file = "dataset_reg_7.Rds")
 
-dataset_7 <- readRDS(file = "dataset_7.Rds")
+dataset_reg_7 <- readRDS(file = "dataset_reg_7.Rds")
 ```
 
 
-  dataset <- readRDS(file = "dataset_7.Rds")
+  dataset_reg <- readRDS(file = "dataset_reg_7.Rds")
   
   
 # General Exploration
@@ -58,18 +58,18 @@ dataset_7 <- readRDS(file = "dataset_7.Rds")
 
 # Data Preprocessing
 
-sort dataset by colunm names
-  dataset = dataset[ , order(names(dataset))]
+sort dataset_reg by colunm names
+  dataset_reg = dataset_reg[ , order(names(dataset_reg))]
   
   #removing policy_code because always equals 1
-  dataset = subset(dataset, select = -c(policy_code) )
+  dataset_reg = subset(dataset_reg, select = -c(policy_code) )
   
   
   # Removing columns that have > 0.05 NAs
-  dataset <- dataset[, -which(colMeans(is.na(dataset)) > 0.05)]
+  dataset_reg <- dataset_reg[, -which(colMeans(is.na(dataset_reg)) > 0.05)]
   
   # Omiting columns that only have NAs, ie. id and member_id.
-  dataset <- dataset[,colSums(is.na(dataset))<nrow(dataset)]
+  dataset_reg <- dataset_reg[,colSums(is.na(dataset_reg))<nrow(dataset_reg)]
   
   # we remove desc as it is descrbing the purpose of the loan given it's unstructured data we can't do much about it.
   # Given we have a status column and date for all the factors that 
@@ -81,68 +81,68 @@ sort dataset by colunm names
   # last_pymnt_d and next_pymnt_d will be removed
   # addr_state is remove as it's not significant
   # grade is remove as it's a covariance of sub_grade
-  dataset <- subset(dataset, select = -c(id_2, desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
+  dataset_reg <- subset(dataset_reg, select = -c(id_2, desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
 
   # sub_grade has more than 32 levels which is a hard limit for random forest.
   # We'll dummy code it to circument this
-  levels_sub_grade <- levels(dataset$sub_grade)
-  dataset$sub_grade<- as.numeric(mapvalues(dataset$sub_grade, levels_sub_grade, seq(from = 1, to = 35, by = 1)))
-  levels(dataset$sub_grade)
+  levels_sub_grade <- levels(dataset_reg$sub_grade)
+  dataset_reg$sub_grade<- as.numeric(mapvalues(dataset_reg$sub_grade, levels_sub_grade, seq(from = 1, to = 35, by = 1)))
+  levels(dataset_reg$sub_grade)
   
   # sorting emp_lenght, and dummy coding.
-  levels_emp_length <- levels(dataset$emp_length)
-  dataset$emp_length <- ordered(dataset$emp_length, levels = c("n/a", "< 1 year", "1 year", "2 years", "3 years","4 years", "5 years","6 years", "7 years", "8 years", "9 years", "10+ years"))
-  levels(dataset$emp_length)
-  dataset$emp_length <- as.numeric(mapvalues(dataset$emp_length, levels_emp_length, c(-1, seq(from = 0, to = 10, by = 1))))
-  levels(dataset$emp_length)
+  levels_emp_length <- levels(dataset_reg$emp_length)
+  dataset_reg$emp_length <- ordered(dataset_reg$emp_length, levels = c("n/a", "< 1 year", "1 year", "2 years", "3 years","4 years", "5 years","6 years", "7 years", "8 years", "9 years", "10+ years"))
+  levels(dataset_reg$emp_length)
+  dataset_reg$emp_length <- as.numeric(mapvalues(dataset_reg$emp_length, levels_emp_length, c(-1, seq(from = 0, to = 10, by = 1))))
+  levels(dataset_reg$emp_length)
   
   # grouping earliest_cr_line by year
-  dataset$earliest_cr_line <- as.integer(substring(dataset$earliest_cr_line, 5))
+  dataset_reg$earliest_cr_line <- as.integer(substring(dataset_reg$earliest_cr_line, 5))
   
   # grouping earliest_cr_line by year
-  dataset$sec_app_earliest_cr_line <- as.integer(substring(as.character(dataset$sec_app_earliest_cr_line), 5))
-  dataset$sec_app_earliest_cr_line[is.na(dataset$sec_app_earliest_cr_line)] <- -1
-  typeof(dataset$sec_app_earliest_cr_line)
-  levels(dataset$sec_app_earliest_cr_line)
+  dataset_reg$sec_app_earliest_cr_line <- as.integer(substring(as.character(dataset_reg$sec_app_earliest_cr_line), 5))
+  dataset_reg$sec_app_earliest_cr_line[is.na(dataset_reg$sec_app_earliest_cr_line)] <- -1
+  typeof(dataset_reg$sec_app_earliest_cr_line)
+  levels(dataset_reg$sec_app_earliest_cr_line)
   
-  levels(dataset$total_rec_late_fee)
+  levels(dataset_reg$total_rec_late_fee)
   
-  na_count <-sapply(dataset, function(y) sum(length(which(is.na(y)))))
+  na_count <-sapply(dataset_reg, function(y) sum(length(which(is.na(y)))))
   
-  # changing the dataset as a tbl object.
-  dataset <- as.tbl(dataset)
+  # changing the dataset_reg as a tbl object.
+  dataset_reg <- as.tbl(dataset_reg)
   # change NAs to 0 in integer columns
-  dataset <- mutate_if(dataset, is.integer, ~replace(., is.na(.), -1))
+  dataset_reg <- mutate_if(dataset_reg, is.integer, ~replace(., is.na(.), -1))
   # change NAs to 0 in doubles columns
   
-  dataset <- mutate_if(dataset, is.numeric, ~replace(., is.na(.), -1))
+  dataset_reg <- mutate_if(dataset_reg, is.numeric, ~replace(., is.na(.), -1))
   # change NAs to 0 in strings columns
   
-  dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
+  dataset_reg <- mutate_if(dataset_reg, is.character, ~replace(., is.na(.), "NA"))
   
   # change NAs to 0 in strings columns
   
-  # dataset <- mutate_if(dataset, is.factor, ~replace(., is.na(.), "NA"))
+  # dataset_reg <- mutate_if(dataset_reg, is.factor, ~replace(., is.na(.), "NA"))
   
   # change columns to character¨
-  # dataset$hardship_type <- as.character(dataset$hardship_type)
-  # dataset$hardship_reason <- as.character(dataset$hardship_reason)
-  # dataset$hardship_status <- as.character(dataset$hardship_status)
-  # dataset$hardship_loan_status <- as.character(dataset$hardship_loan_status)
-  # dataset$settlement_status <- as.character(dataset$settlement_status)
-  # dataset$verification_status_joint <- as.character(dataset$verification_status_joint)
+  # dataset_reg$hardship_type <- as.character(dataset_reg$hardship_type)
+  # dataset_reg$hardship_reason <- as.character(dataset_reg$hardship_reason)
+  # dataset_reg$hardship_status <- as.character(dataset_reg$hardship_status)
+  # dataset_reg$hardship_loan_status <- as.character(dataset_reg$hardship_loan_status)
+  # dataset_reg$settlement_status <- as.character(dataset_reg$settlement_status)
+  # dataset_reg$verification_status_joint <- as.character(dataset_reg$verification_status_joint)
   # 
   # change empty character columns to "NA"
   # 
-  dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
+  dataset_reg <- mutate_if(dataset_reg, is.character, ~replace(., is.na(.), "NA"))
   # 
   
   # calculating the number of unique levels per column
-  sapply(dataset, function(col) length(unique(col)))
+  sapply(dataset_reg, function(col) length(unique(col)))
   
-  na_count <-sapply(dataset, function(y) sum(length(which(is.na(y)))))
+  na_count <-sapply(dataset_reg, function(y) sum(length(which(is.na(y)))))
   
-  return(dataset)
+  return(dataset_reg)
 
 
 
@@ -151,76 +151,75 @@ sort dataset by colunm names
 # Part 1 - Regression Analysis
 
 ## Preparatory tasks:
-### Create a copy of your dataset, eliminating the entries that have an “na” in the interest rate variable int_rate. (Interest rate is used as output variable).
+### Create a copy of your dataset_reg, eliminating the entries that have an “na” in the interest rate variable int_rate. (Interest rate is used as output variable).
 ## Initialization
 
-```{r initialization, message=FALSE, warning=FALSE, results="hide"}
-source(file = "functions.R")
-func_init_env()
-```
-
-```{r loading Rds file, results="hide"}
-dataset <- func_data_load()
-```
-
 ```{r preprocessing, echo=TRUE}
-dataset <- func_data_prep(dataset)
+# Creating a separate dataset_reg for regression
+dataset_reg_reg <- dataset_reg
 
-sessionInfo()
 ```
 ### Apply the “validation set approach” to reserve a meaningful amount of data for the test phase.
 ```{r validation set approach, cache=TRUE}
 # setting a seed for reproducability
 set.seed(7)
 # We randomly split our dataframe in a train and test set
-trainRows = sample(1:nrow(dataset),0.5*nrow(dataset))
-testRows = nrow(dataset) - trainRows
-train = dataset[trainRows,]
-test = dataset[testRows,]
+trainRows = sample(1:nrow(dataset_reg),0.5*nrow(dataset_reg))
+testRows = nrow(dataset_reg) - trainRows
+train = dataset_reg[trainRows,]
+test = dataset_reg[testRows,]
 # creating a small subset of data for quickly that models are runnining whithout any issues.
 # This won't be used for the analysis
-small_trainRows = sample(1:nrow(dataset),0.1*nrow(dataset))
-small_testRows = sample(nrow(dataset) - small_trainRows,0.1*nrow(dataset))
-small_train = dataset[small_trainRows,]
-small_test = dataset[small_testRows,]
+small_trainRows = sample(1:nrow(dataset_reg),0.1*nrow(dataset_reg))
+small_testRows = sample(nrow(dataset_reg) - small_trainRows,0.1*nrow(dataset_reg))
+small_train = dataset_reg[small_trainRows,]
+small_test = dataset_reg[small_testRows,]
 ```
 ### Using one of the approaches for model selection discussed in class, reduce the number of predictors. For interpretability reasons, start with approaches that conserve the original predictor space. If any useful significant subset is possible, use a base transformation.
 
 ### Compute the correlation matrix for the selected set of predictors and the output variable, if useful, also using graphical representation.
-
+```{r correlation matrix}
+# correlation matrix by p-value
+corrmatrix <- subset(dataset_reg, select = c(-id_2, -term, -home_ownership, -initial_list_status, -application_type, -verification_status_joint, -hardship_flag, -hardship_type, -hardship_reason, -hardship_type, -hardship_loan_status, -hardship_status, -disbursement_method, -debt_settlement_flag, -verification_status, -loan_status, -pymnt_plan, -purpose, -settlement_status))
+mcor <- cor(corrmatrix)
+corrplot(mcor, type="upper", sig.level = 0.001, insig = "blank",number.font = 0)
+# correlogram combined with significance test <- only correlations that are relevant are shown in the plot
+# still gives out na error<- how can we remove all nas to make it work?
 
 ## Data Exploration
+```
+
 ```{r Data Exploration - interest rate vs loan amount}
 # plotting the loan amount vs the interest rate
-{ggplot(data = dataset, mapping = aes(loan_amnt, int_rate)) +
+{ggplot(data = dataset_reg, mapping = aes(loan_amnt, int_rate)) +
   geom_point()}
 # from this visualisation we can't see any clear correlation.
 ```
 
 ```{r Data Exploration - interest rate vs term}
 # plotting the loan amount vs the term
-{ggplot(data = dataset, mapping = aes(term, int_rate)) +
+{ggplot(data = dataset_reg, mapping = aes(term, int_rate)) +
   geom_boxplot()}
 # Here we can see that the interest rate is generaly higher for 60 months loans and lower for 36 months loans.
 ```
 
 ```{r Data Exploration - interest rate vs grade}
 # plotting the loan amount vs the grade
-{ggplot(data = dataset, mapping = aes(factor(sub_grade), int_rate), group = 2) +
+{ggplot(data = dataset_reg, mapping = aes(factor(sub_grade), int_rate), group = 2) +
   geom_boxplot()}
 # The sub_grade seems to have a strong influence on the interest rate
 ```
 
 ```{r Data Exploration - interest rate vs home ownership}
 # plotting the loan amount vs home ownership
-{ggplot(data = dataset, mapping = aes(factor(home_ownership), int_rate), group = 2) +
+{ggplot(data = dataset_reg, mapping = aes(factor(home_ownership), int_rate), group = 2) +
   geom_boxplot()}
 # Here we can see that the interest rate is quite close to each other between home_ownership.
 ```
 
 ```{r Data Exploration - interest rate vs verification_status}
 # plotting the loan amount vs verification_status
-{ggplot(data = dataset, mapping = aes(factor(verification_status), int_rate), group = 2) +
+{ggplot(data = dataset_reg, mapping = aes(factor(verification_status), int_rate), group = 2) +
   geom_boxplot()}
 # The verification_status seems to also have an influence on the interest rate.
 
@@ -228,46 +227,46 @@ small_test = dataset[small_testRows,]
 
 ```{r Data Exploration - interest rate vs emp_title}
 # plotting the loan amount vs verification_status
-{ggplot(data = dataset, mapping = aes(factor(emp_title), int_rate), group = 2) +
+{ggplot(data = dataset_reg, mapping = aes(factor(emp_title), int_rate), group = 2) +
   geom_boxplot()}
 # The emp_title ????
 
 ```
 ```{r Data Exploration lm, cache=TRUE}
-# lm on the whole dataset
+# lm on the whole dataset_reg
 if (exists(x = "lmp.fit") == FALSE){
 readRDS("int_rate_lmp_fit")}
    else
-lmp.fit=lm(int_rate~.,data = subset(dataset, select=c(-id_2)))
+lmp.fit=lm(int_rate~.,data = subset(dataset_reg, select=c(-id_2)))
 
 summary(lmp.fit)
 plot(lmp.fit)
 #removing features that do not have at least a 0.001 P value
-dataset <- subset(dataset, select = -c(annual_inc, dti, earliest_cr_line,total_pymnt, total_rec_prncp, total_rec_int, total_rec_late_fee, recoveries, acc_open_past_24mths, avg_cur_bal, bc_open_to_buy, delinq_amnt, mo_sin_old_rev_tl_op, mo_sin_rcnt_rev_tl_op, mort_acc, num_il_tl, pct_tl_nvr_dlq, tax_liens, total_bal_ex_mort, total_bc_limit, total_il_high_credit_limit, num_actv_bc_tl, mo_sin_rcnt_tl))
+dataset_reg <- subset(dataset_reg, select = -c(annual_inc, dti, earliest_cr_line,total_pymnt, total_rec_prncp, total_rec_int, total_rec_late_fee, recoveries, acc_open_past_24mths, avg_cur_bal, bc_open_to_buy, delinq_amnt, mo_sin_old_rev_tl_op, mo_sin_rcnt_rev_tl_op, mort_acc, num_il_tl, pct_tl_nvr_dlq, tax_liens, total_bal_ex_mort, total_bc_limit, total_il_high_credit_limit, num_actv_bc_tl, mo_sin_rcnt_tl))
 
 # Donig a second round to see if further variables can be removed.
 summary(lmp.fit)
-lmp.fit=lm(int_rate~.,data = subset(dataset, select=c(-id_2)))
+lmp.fit=lm(int_rate~.,data = subset(dataset_reg, select=c(-id_2)))
 
 #removing features that do not have at least a 0.001 P value
 
-dataset <- subset(dataset, select = -c(hardship_reason, inq_last_6mths, num_actv_rev_tl, percent_bc_gt_75, tot_hi_cred_lim))
+dataset_reg <- subset(dataset_reg, select = -c(hardship_reason, inq_last_6mths, num_actv_rev_tl, percent_bc_gt_75, tot_hi_cred_lim))
                   
-lmp.fit=lm(int_rate~.,data = subset(dataset, select=c(-id_2)))
+lmp.fit=lm(int_rate~.,data = subset(dataset_reg, select=c(-id_2)))
 summary(lmp.fit)
 
-dataset <- subset(dataset, select = -c(bc_util))
+dataset_reg <- subset(dataset_reg, select = -c(bc_util))
                   
 }}}
 
 ```
 
 ```{r}
-lm.fit2=lm(int_rate~poly(sub_grade,2),data=dataset)
-lm.fit4=lm(int_rate~poly(sub_grade,4),data=dataset)
-lm.fit5=lm(int_rate~poly(sub_grade,5),data=dataset)
-lm.fit6=lm(int_rate~poly(sub_grade,6),data=dataset)
-lm.fit10=lm(int_rate~poly(sub_grade,10),data=dataset)
+lm.fit2=lm(int_rate~poly(sub_grade,2),data=dataset_reg)
+lm.fit4=lm(int_rate~poly(sub_grade,4),data=dataset_reg)
+lm.fit5=lm(int_rate~poly(sub_grade,5),data=dataset_reg)
+lm.fit6=lm(int_rate~poly(sub_grade,6),data=dataset_reg)
+lm.fit10=lm(int_rate~poly(sub_grade,10),data=dataset_reg)
 anova(lm.fit,lm.fit2,lm.fit4,lm.fit5,lm.fit6,lm.fit10, na.action = na.omit)
 
 ```
@@ -277,10 +276,10 @@ anova(lm.fit,lm.fit2,lm.fit4,lm.fit5,lm.fit6,lm.fit10, na.action = na.omit)
 ```{r stepwise model, results = FALSE, cache=TRUE, include=FALSE}
 
 # should we use a gaussian model here?
-null_model <- glm(int_rate ~ 1, data = subset(dataset[small_trainRows,], select=c(-id_2)), family = "gaussian")
+null_model <- glm(int_rate ~ 1, data = subset(dataset_reg[small_trainRows,], select=c(-id_2)), family = "gaussian")
 
 # Specify the partial model using a subset of the potential predictors
-partial_model <- glm(int_rate ~ ., data=subset(dataset[small_trainRows,], select=c(-id_2)), family = "gaussian")
+partial_model <- glm(int_rate ~ ., data=subset(dataset_reg[small_trainRows,], select=c(-id_2)), family = "gaussian")
 
 #  -emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date
 
@@ -298,7 +297,7 @@ step_model <- step(null_model, scope = list(lower = null_model, upper = partial_
 step_prob <- predict(step_model, type = "response")
 
 # getting the step response
-step_response <- dataset[small_testRows,]$int_rate
+step_response <- dataset_reg[small_testRows,]$int_rate
 
 # MAPE
 MAPE(step_prob, step_response)
@@ -306,20 +305,20 @@ MAPE(step_prob, step_response)
 
 ```{r stepwise model Both direction elimination , results = FALSE, cache=TRUE}
 # should we use a gaussian model here?
-null_model <- glm(int_rate ~ 1, data = subset(dataset[small_trainRows,], select=c(-id_2)), family = "gaussian")
+null_model <- glm(int_rate ~ 1, data = subset(dataset_reg[small_trainRows,], select=c(-id_2)), family = "gaussian")
 
 # Specify the partial model using a subset of the potential predictors
-partial_model <- glm(int_rate ~ ., data=subset(dataset[small_trainRows,], select=c(-id_2)), family = "gaussian")
+partial_model <- glm(int_rate ~ ., data=subset(dataset_reg[small_trainRows,], select=c(-id_2)), family = "gaussian")
 
 step_model <- step(null_model, scope = list(lower = null_model, upper = partial_model), direction = "both", trace = 1)
 
 saveRDS(step_model,"step_model_both")
 # Estimate the stepwise probability for the test set.
 step_prob <- predict(step_model, type = "response")
-step_test_response <- dataset[small_testRows,]$int_rate
+step_test_response <- dataset_reg[small_testRows,]$int_rate
 
 step_prob <- predict(step_model, type = "response")
-step_train_response <- dataset[small_trainRows,]$int_rate
+step_train_response <- dataset_reg[small_trainRows,]$int_rate
 # MAPE for test set
 MAPE(step_prob, step_test_response)
 # MAPE for train set
@@ -346,7 +345,7 @@ mean (apply(compare, 1, min)/apply(compare, 1, max))
 ```{r Random Forest, results= False, cache=TRUE}
 int_rate_RF <-  foreach(ntree=rep(125, 4), .combine=combine, .packages='randomForest')
 
-int_rate_RF <- randomForest(int_rate ~., data=dataset, subset = small_trainRows, importance=TRUE, do.trace = TRUE)
+int_rate_RF <- randomForest(int_rate ~., data=dataset_reg, subset = small_trainRows, importance=TRUE, do.trace = TRUE)
 
 int_rate_RF
 summary(int_rate_RF)
@@ -355,10 +354,10 @@ class.error
 plot(int_rate_RF)
 fitted.int_rate=predict(int_rate_RF)
 
-int_rate_RF_pred <- predict(int_rate_RF, newdata = dataset[small_testRows,])
+int_rate_RF_pred <- predict(int_rate_RF, newdata = dataset_reg[small_testRows,])
 view(int_rate_RF_pred)
 table(int_rate_RF_pred, small_test$int_rate)
-response_int_rate <- dataset[small_trainRows,]$int_rate
+response_int_rate <- dataset_reg[small_trainRows,]$int_rate
 ROC <- roc(int_rate_RF_pred, response_int_rate)
 plot(ROC, col = "red")
 auc(ROC)
@@ -366,14 +365,14 @@ MAPE()
 saveRDS(int_rate_RF, file = "int_rate_RF")
 ```
 ```{r Random Forest Ranger, cache= TRUE}
-model2 <- train(int_rate ~ sub_grade, data = dataset[small_trainRows,], method = "ranger")
+model2 <- train(int_rate ~ sub_grade, data = dataset_reg[small_trainRows,], method = "ranger")
 plot(model2)
 ```
 
 
 ```{r, Logistic regression, results=False}
 
-fit_glm <- glm(int_rate ~. , data=subset(dataset, select=c(-id_2), family = binomial))
+fit_glm <- glm(int_rate ~. , data=subset(dataset_reg, select=c(-id_2), family = binomial))
 summary(fit_glm)
 glm.probs <- predict(fit_glm, type = "response")
 glm.probs[1:5]
