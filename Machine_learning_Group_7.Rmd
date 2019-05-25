@@ -1,32 +1,64 @@
-## function loads dataset for our group
-func_init_env <- function () {
-  #removes 
+---
+title: "Group 7 - Classification model for the default status"
+author: "L. Becker, A. Chebatarova, A. Kandel, A.Kusche, R. Mizrak"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+# Introduction @ Anastasia
+
+What is the project about? Who are we, what we are going to do?
+
+
+# Init @ Anastasia
+sajdkfjsdlkf jlaksdjf klasdjflk skladfs
+af sdjflkjsdakl fksad f
+sdafklsdjklf sad
+f asd
+f dsfldsjfk sajdf
+```{r Initilize the environment, warning=TRUE}
+
+  # Clear objects from the workspace
   rm(list=(ls()))
   
-  # install and loading required packages
+  # load library to deal with packages
   library(pacman)
 
+  # install and loading required packages
   pacman::p_load(party, dummies, ranger, data.table, rmarkdown, tidyverse, caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, pROC, class,MLmetrics, tree)
+```
+   
 
-  #Register 4 Cores
-  registerDoMC(4)
-  
-  # setting a seed for reproducability
-  set.seed(7)
-  
-  #?
-  knitr::opts_chunk$set(echo = TRUE)
-}
+# Data Extraction @ Alex
 
-## function initalizes environment
-func_data_load<- function () {
+In order to avoid to have to work with the whole original dataset from https://www.kaggle.com/wendykan/lending-club-loan-data
+dataset_7.Rds has been created as follows.
+
+``` 
+loan_df <- read.csv(file = "loan.csv", header = TRUE)
+loan_df <- cbind(id_2 = rownames(loan_df), loan_df)
+rownames(loan_df) <- 1:nrow(loan_df)
+loan_df$id_2 <- as.numeric(loan_df$id_2)
+dataset_7 <- loan_df[which(loan_df$id_2%%8+1== 7),]
+saveRDS(dataset_7, file = "dataset_7.Rds")
+
+dataset_7 <- readRDS(file = "dataset_7.Rds")
+```
+
+
   dataset <- readRDS(file = "dataset_7.Rds")
-}
+  
+  
+# General Exploration
 
 
-## function initalizes environment
-func_data_prep<- function (dataset) {
-  #sort dataset by colunm names
+
+# Data Preprocessing
+
+sort dataset by colunm names
   dataset = dataset[ , order(names(dataset))]
   
   #removing policy_code because always equals 1
@@ -111,4 +143,44 @@ func_data_prep<- function (dataset) {
   na_count <-sapply(dataset, function(y) sum(length(which(is.na(y)))))
   
   return(dataset)
-  }
+
+
+
+-----------
+   
+# Part 1 - Regression Analysis
+
+## Preparatory tasks:
+### Create a copy of your dataset, eliminating the entries that have an “na” in the interest rate variable int_rate. (Interest rate is used as output variable).
+### Apply the “validation set approach” to reserve a meaningful amount of data for the test phase.
+### Using one of the approaches for model selection discussed in class, reduce the number of predictors. For interpretability reasons, start with approaches that conserve the original predictor space. If any useful significant subset is possible, use a base transformation.
+### Compute the correlation matrix for the selected set of predictors and the output variable, if useful, also using graphical representation.
+ 
+## Main task:
+### Compare three different methods to perform regression, using the cross-validation method to compute the best parameters. Consider using some regularization for the parameters shrinkage. Test the train error rate, the CV error rate and the test error.
+  
+   @Axel
+# Part 2 - Classification Analysis
+## Preparatory tasks
+### Our goal in the second part of the assignment is to predict if a new customer will be able to fully pay back their loans using a classification method. Thus, we concentrate on the "concluded lends" in the data set, i.e., on all lends whose loan_status is not Current. To this end, filter out all observations with loan_status == Current.
+### For the remaining observations, check if the loan_status is “Fully Paid”. If not, change the value of loan_status to “DEFAULTED”
+### Create a validation set. 
+
+
+## Main tasks:
+
+### Use Principal Component Analysis for base transformation and then compare it with the Partial Least Squares Regression result. Select the best base with cross validation, using the better of the two approaches.
+### Perform the classification using KNN, Logistic Regression, Decision tree and Random forest.
+### Compare the respective train and test error performances to select one of these approaches.
+### Perform the prediction on the validation set and compute the confusion matrix.
+### Conceptually compare your approach with a solution existing for this problem. (Default prediction is a very well-known problem in literature).
+
+ @Alex
+# Summary 
+
+
+
+
+
+
+

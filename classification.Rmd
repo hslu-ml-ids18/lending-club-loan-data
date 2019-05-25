@@ -11,7 +11,7 @@ output:
 # Initialization
 
 ```{r initialization, results="hide"}
-source(file = "functions.R")
+source(file = "functions.Rmd")
 func_init_env()
 ```
 
