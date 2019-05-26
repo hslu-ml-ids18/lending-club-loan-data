@@ -259,7 +259,8 @@ dataset_reg <- subset(dataset_reg, select = -c(bc_util))
 ### Apply the “validation set approach” to reserve a meaningful amount of data for the test phase.
 ```{r validation set approach regression, cache=TRUE}
 
-dataset_reg <- subset(dataset_reg, select = c(int_rate, bc_util, delinq_2yrs, installment, initial_list_status, loan_status, revol_util, sub_grade, total_pymnt_inv, out_prncp, open_acc, mo_sin_rcnt_rev_tl_op, total_rec_int, pct_tl_nvr_dlq, num_il_tl))
+#dataset_reg <- subset(dataset_reg, select = c(int_rate, bc_util, delinq_2yrs, installment, initial_list_status, loan_status, revol_util, sub_grade, total_pymnt_inv, out_prncp, open_acc, mo_sin_rcnt_rev_tl_op, total_rec_int, pct_tl_nvr_dlq, num_il_tl))
+dataset_reg <- subset(dataset_reg, select = c(int_rate, bc_util, delinq_2yrs, installment, initial_list_status, loan_status, revol_util, sub_grade))
 
 # setting a seed for reproducability
 set.seed(7)
@@ -278,7 +279,7 @@ control.reg <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
 
 ```{r Linear Model analysis regression, cache=TRUE}
 fit.lm.reg <- train(int_rate~.,
-                    data = test.data.reg,
+                    data = train.data.reg,
                     trControl = control.reg,
                     method = "lm",
                     na.action = na.pass)  
@@ -290,7 +291,7 @@ plot(fit.lm.reg$finalModel)
 ```{r Generalized Linear Model with Stepwise Feature Selection, cache=TRUE}
 
 fit.glmStepAIC.reg <- train(int_rate~.,
-                    data = test.data.reg,
+                    data = train.data.reg,
                     trControl = control.reg,
                     method = "glmStepAIC",
                     na.action = na.pass)
@@ -301,26 +302,32 @@ plot(fit.glmStepAIC.reg$finalModel)
 ```
 ```{r Bayesian Linear Ridge Regression, cache=TRUE}
 
-fit.bridge.reg <- train(int_rate~.,
-                    data = test.data.reg,
-                    trControl = control.reg,
-                    method = "bridge",
-                    na.action = na.pass)
-fit.bridge.reg
-fit.bridge.reg$finalModel
-plot(fit.bridge.reg$finalModel)
+#fit.bridge.reg <- train(int_rate~.,
+#                    data = test.data.reg,
+#                    trControl = control.reg,
+#                    method = "bridge",
+#                    na.action = na.pass)
+#fit.bridge.reg
+#fit.bridge.reg$finalModel
+#plot(fit.bridge.reg$finalModel)
 ```
 
 ```{r Random Forest}
-
-fit.RF.reg <- train(int_rate~.,
-                    data = test.data.reg,
+## Read Model from file or compute it 
+if (file.exists("fit.RF.reg.rds")) {
+   fit.bridge.reg <- readRDS("fit.RF.reg.rds")
+} else {
+   fit.RF.reg <- train(int_rate~.,
+                    data = train.data.reg,
                     trControl = control.reg,
                     method = "parRF",
                     na.action = na.pass)
+}
+
+
 fit.RF.reg
 fit.RF.reg$finalModel
-plot(fit.RF.reg$finalModel)
+plot(fit.RF.reg)
 ```
 
 ```{r Calculating TEST MAPE out of the models}
@@ -565,9 +572,18 @@ confusionMatrix( predict(fit.rf.cla, test.data.cla), test.data.cla$defaulted)   
  
 # Summary 
 
+We first generated a subset of the orignial lending-club-loan data and saved that file. 
+
+With the new subset we started with exploratory data analysis, based on correlation matrix and, boxplots and plots we could identify importante variables and exclude correlating once. Based on the forgoing data exploration and checking the DataDescription we limited the amount of feautre. In addition we used P For case of simplicity and availalbe computation power we further had to limit the feature. W
+
+
+There was a imbalance of distribution between good and defaulted loans, but so the analysis show that its helpful with machine learning techniques to predict the interast rate and proability that a loan is defaulted.
+
 ## Room for improvement
-For case of simplicity and availalbe computation power only a limit set of features is used. 
+
 In future work, natural language processing (NLP) could be used to etraxt informatcion from Loan description or the job title. 
 Feature engineering could be implemented, e. g. the zip_code could be used to determine the unemployment rate. 
+
+
 
 @ToDo
