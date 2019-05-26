@@ -1,5 +1,5 @@
 ---
-title: "Group 7 - Groupwork on leding club loan data 💰"
+title: "Group 7 - Groupwork on leding club loan data"
 author: "L. Becker, A. Chebatarova, A. Kandel, A.Kusche, R. Mizrak"
 date: "`r Sys.Date()`"
 output:
@@ -24,7 +24,7 @@ Required steps:
 - Part 2 - Classification Analysis - we take a step back in order to be sure that all necessary variables are included into our analysis, perform required transformations, define the models, check the errors and validate the results. 
 - Summary 
 
-# Initialize the environment
+# Initializing the environment
 
 At this step we clear the workspace and install necessary packages for data processing.
 ```{r Initilize the environment, warning=TRUE}
@@ -36,9 +36,12 @@ At this step we clear the workspace and install necessary packages for data proc
   library(pacman)
 
   # install and loading required packages
-  pacman::p_load(import, monomvn, party, dummies, ranger, data.table, rmarkdown, tidyverse, caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, pROC, class,MLmetrics, tree, car, ridge, lmridge, xgboost)
+  pacman::p_load(import, monomvn, party, dummies, ranger, data.table, rmarkdown, tidyverse, 
+  caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, 
+  pROC, class,MLmetrics, tree, car, ridge, lmridge, xgboost)
 ```
-   
+
+\pagebreak   
 
 # Data Extraction
 
@@ -72,18 +75,15 @@ Read the subset of data from the previous step
 dataset <- readRDS(file = "dataset_7.Rds")
 # Setting seed
 set.seed(3452)
-dataset <- dataset[sample(1:nrow(dataset),2000),]
+dataset <- dataset[sample(1:nrow(dataset),20000),]
 
 ```  
-
-# General Exploration
-
 
 # Data Preprocessing 
 
 Preprocess the dataset, remove colums, check for na ... 
 
-```{r, include=FALSE}
+```{r message=FALSE, warning=FALSE}
   
   # sort dataset by colunm names, to facilite search
   dataset = dataset[ , order(names(dataset))]
@@ -103,14 +103,14 @@ Preprocess the dataset, remove colums, check for na ...
   # We'll dummy code it to circument this
   levels_sub_grade <- levels(dataset$sub_grade)
   dataset$sub_grade<- as.numeric(mapvalues(dataset$sub_grade, levels_sub_grade, seq(from = 1, to = 35, by = 1)))
-  levels(dataset$sub_grade)
+
   
   # sorting emp_lenght, and dummy coding.
   levels_emp_length <- levels(dataset$emp_length)
   dataset$emp_length <- ordered(dataset$emp_length, levels = c("n/a", "< 1 year", "1 year", "2 years", "3 years","4 years", "5 years","6 years", "7 years", "8 years", "9 years", "10+ years"))
   levels(dataset$emp_length)
   dataset$emp_length <- as.numeric(mapvalues(dataset$emp_length, levels_emp_length, c(-1, seq(from = 0, to = 10, by = 1))))
-  levels(dataset$emp_length)
+
   
   # grouping earliest_cr_line by year
   dataset$earliest_cr_line <- as.integer(substring(dataset$earliest_cr_line, 5))
@@ -119,9 +119,6 @@ Preprocess the dataset, remove colums, check for na ...
   dataset$sec_app_earliest_cr_line <- as.integer(substring(as.character(dataset$sec_app_earliest_cr_line), 5))
   dataset$sec_app_earliest_cr_line[is.na(dataset$sec_app_earliest_cr_line)] <- -1
   typeof(dataset$sec_app_earliest_cr_line)
-  levels(dataset$sec_app_earliest_cr_line)
-  
-  levels(dataset$total_rec_late_fee)
   
   na_count <-sapply(dataset, function(y) sum(length(which(is.na(y)))))
   
@@ -166,7 +163,7 @@ Preprocess the dataset, remove colums, check for na ...
 ```
 
 
------------
+\pagebreak 
    
 # Part 1 - Regression Analysis
 
@@ -185,7 +182,7 @@ dataset_reg <- dataset
 ### Using one of the approaches for model selection discussed in class, reduce the number of predictors. For interpretability reasons, start with approaches that conserve the original predictor space. If any useful significant subset is possible, use a base transformation.
 
 ### Compute the correlation matrix for the selected set of predictors and the output variable, if useful, also using graphical representation.
-```{r correlation matrix}
+```{r correlation matrix, include=FALSE}
 # correlation matrix by p-value, removing non-numericals for this. 
 corrmatrix <- subset(dataset_reg, select = c(-term, -home_ownership, -initial_list_status, -application_type, -verification_status_joint, -hardship_flag, -hardship_type, -hardship_loan_status, -hardship_status, -disbursement_method, -debt_settlement_flag, -verification_status, -loan_status, -pymnt_plan, -purpose, -settlement_status, -acc_now_delinq, -hardship_reason))
 mcor <- cor(corrmatrix)
@@ -262,6 +259,8 @@ summary(lmp.fit)
 dataset_reg <- subset(dataset_reg, select = -c(bc_util))
                   
 ```
+
+\pagebreak 
 ## Main task:
 ### Compare three different methods to perform regression, using the cross-validation method to compute the best parameters. Consider using some regularization for the parameters shrinkage. Test the train error rate, the CV error rate and the test error.
 
@@ -335,12 +334,11 @@ Fit the a extrem gradient boosting model.
 ```{r}
 
 if (file.exists("fit.egb.reg.rds")) {
-   fit.legbreg <- readRDS("fit.egb.reg.rds")
+   fit.egb.reg <- readRDS("fit.egb.reg.rds")
 } else {
     fit.egb.reg = train(int_rate~.,
                     data = train.data.reg,
                     trControl = control.reg,
-                    # tuneGrid = xgbGrid, 
                     method = "xgbTree"
     )
 }
@@ -378,10 +376,6 @@ mape_rf_test <- MAPE(predict(fit.RF.reg, test.data.reg), test.data.reg$int_rate)
 
 test_mapes <- data.frame("LM" = mape_lm_test, "egb"= mape_egb_test, "Random Forest" = mape_rf_test)
 
-# plot(test_mapes,x = test_mape)
-# # ggplot(test_mapes, aes(aes(x=as.numeric(test_mapes)))) + 
-#   geom_point()
-
 ```
 
 ```{r Calculating TRAIN MAPE out of the models}
@@ -402,14 +396,10 @@ train_mapes <- data.frame("LM" = mape_lm_train, "egb"= mape_egb_train, "Random F
 mapes <- union(test_mapes, train_mapes)
 row.names(mapes) <- c("test", "train")
 print(mapes)
-# # Plotting the Test and Train MAPEs
-# plot(mapes)
-# 
-# {ggplot(mapes, aes(x = dataset_reg)) + 
-#   geom_point()}
 
 ```
 
+\pagebreak 
    
 # Part 2 - Classification Analysis
 
@@ -469,7 +459,7 @@ test.data.cla  <- dataset_cla[-trainIndex,]
 
 ## Main tasks:
 
-Now we can go over to do the analysis on the dataset. Therefore we use differnt approaches for feature selection (PLS and PCA). Based on the results, we choose the features and do the classification analysis.   
+Now we can go over to do the analysis on the dataset. Therefore we use different approaches for feature selection (PLS and PCA). Based on the results, we choose the features and do the classification analysis.   
 
 ### Use Principal Component Analysis for base transformation and then compare it with the Partial Least Squares Regression result. Select the best base with cross validation, using the better of the two approaches.
 
@@ -516,19 +506,19 @@ models <- resamples(list("PLS-DA" = fit.pls.cla, "PCA-DA" = fit.lda.cla))
 bwplot(models, metric = "Accuracy")
 
 plot(varImp(fit.pls.cla), fit.pls.cla$bestTune$ncomp, main = "PLS-DA")
-#plot(varImp(fit.lda.cla), 5, main = "PCA-DA")
 
 ```
 
-## based on the results from PLS analysis in the step before, limit the dataset to the most relevant variables. 
 
-```{r eval=FALSE, results="hide"}
+
+```{r, eval=FALSE, results="hide"}
+# limiting the variables of the dataset based on the results from PLS analysis in the step before
 
 train.data.cla <- subset(train.data.cla, select = c(defaulted, total_rec_prncp, recoveries, collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term))
 test.data.cla  <- subset(test.data.cla, select = c(defaulted, total_rec_prncp, recoveries, collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term))
 ```
 
-### Perform the classification using KNN, Logistic Regression, Decision tree and Random forest.
+### Perform the classification using KNN, Logistic Regression, Decision Tree and Random Forest.
 
 Train a model with KNN
 
@@ -545,9 +535,10 @@ fit.knn.cla  <- train(defaulted ~ .,
 
 Train a model with Logistic Regression
 
-```{r Perform Logistic Regression with caret}
+```{r Perform Logistic Regression with caret, message=FALSE, warning=FALSE}
 ## logistic regression
-fit.lreg.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
+fit.lreg.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp 
++ last_pymnt_amnt + total_pymnt, 
                 data = train.data.cla, 
                 method = "glm",
                 trControl = control.cla,
@@ -561,7 +552,8 @@ Train a model with Decision Trees
 
 ```{r Perform Decision tree with caret}
 ## decision tree 
-fit.dtree.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
+fit.dtree.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp 
++ last_pymnt_amnt + total_pymnt, 
                data=train.data.cla,
                method="ctree",
                trControl = control.cla,
@@ -572,7 +564,8 @@ Train a model with Random Forest
 
 ```{r Perform Random Forest with caret}
 ## random forest 
-fit.rf.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
+fit.rf.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp 
++ last_pymnt_amnt + total_pymnt, 
                data=train.data.cla,
                method="rf",
                trControl = control.cla,
@@ -583,15 +576,24 @@ fit.rf.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_
 
 ```{r ROC Plot}
 par(pty = "s")
-roc(test.data.cla$defaulted, as.numeric(predict(fit.dtree.cla, test.data.cla)), plot=TRUE, legacy.axes=TRUE, percent=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, print.auc = TRUE, print.auc.y=80, print.auc.x=30)
+roc(test.data.cla$defaulted, as.numeric(predict(fit.dtree.cla, 
+test.data.cla)), plot=TRUE, legacy.axes=TRUE, 
+    percent=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", 
+    lwd=4, print.auc = TRUE, print.auc.y=80, print.auc.x=30)
 
-plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.rf.cla, test.data.cla)), percent=TRUE, col="#b8377e", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=70, print.auc.x=30)
+plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.rf.cla, 
+test.data.cla)), percent=TRUE, col="#b8377e", 
+         lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=70, print.auc.x=30)
 
-plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.lreg.cla, test.data.cla)), percent=TRUE, col="#b87137", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=60, print.auc.x=30)
+plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.lreg.cla, test.data.cla)), 
+         percent=TRUE, col="#b87137", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=60, print.auc.x=30)
 
-plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.knn.cla, test.data.cla)), percent=TRUE, col="#7eb837", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=50, print.auc.x=30)
+plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.knn.cla, test.data.cla)), 
+         percent=TRUE, col="#7eb837", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=50, print.auc.x=30)
 	
-	legend("bottomright", legend=c("Decission Tree", "Random Forest", "Logisitic Regression", "KNN"), col=c("#377eb8", "#b8377e", "#b87137", "#7eb837"), lwd=4)
+	legend("bottomright", legend=c("Decission Tree", 
+	"Random Forest", "Logisitic Regression", "KNN"), 
+	col=c("#377eb8", "#b8377e", "#b87137", "#7eb837"), lwd=4)
 	
 ```
 
@@ -612,43 +614,44 @@ confusionMatrix( predict(fit.dtree.cla, test.data.cla), test.data.cla$defaulted)
 confusionMatrix( predict(fit.rf.cla, test.data.cla), test.data.cla$defaulted)     #Test
 ```
 
+\pagebreak 
 
-### Conceptually compare your approach with a solution existing for this problem. (Default prediction is a very well-known problem in literature).
+# Conceptually comparison of our  approach with a solution existing for this problem
 
 We will compare our approach to the following one:
 Forecasting Credit Default Probability
 Author: Matthew Ludwig
 Date: 11 May 2017
-URL: https://rstudio-pubs-static.s3.amazonaws.com/275340_24f229732ac04bf182ccae5fffdfb47a.html
+URL: <https://rstudio-pubs-static.s3.amazonaws.com/275340_24f229732ac04bf182ccae5fffdfb47a.html>
 
 
-Repacling missing data:
-In our case missing data fro int_rate was simply removed, other variables that did have missing data we treated as follow:
-- for numericals values we dummy coded them with a '-1' in the approche.
+Replacing missing data:
+In our case missing data for int_rate was simply removed, other variables that did have missing data we treated as follow:
+- for numericals values we dummy coded them with a '-1' in the approach.
 - for factors we replaced missing values with 'unkown'
 
-In the approache we're comparing the int_rate used a similar approache named "Missing Not At Random".
+In the approach we're comparing the int_rate used a similar approach named "Missing Not At Random".
 Which basically replaced the missing int_rate value by 'Missing'
 
 Outliers:
 We kept all the outliers and did not try to get these out of our data.
-In the approache we are comparing outliers were removed. 
+In the approach we are comparing outliers were removed. 
  
 Sampling:
 
-We first started with a very small subset (1000 rows) to get a hold if the models we were running were doing so correctly. In our final approache we are using 20000 rows as using any more is too computationaly intensive for the hardware we have.
+We first started with a very small subset (1000 rows) to get ahold if the models we were running were doing so correctly. In our final approach we are using 20000 rows as using any more is too computationaly intensive for the hardware we have.
 
-In the approache we are comparing too the whole dataset is of 29092 row. 20000 are used for training and 9092 are used from testing.
+In the approach we are comparing too the whole dataset is of 29092 row. 20000 are used for training and 9092 are used from testing.
 
 Parameter selection 
 To find out which parameters were usefull we used a logistic regression and a stepwise regression.
 
 This helped us to select a handfull of predictors that were deemed relevant for our models based upon the p-value.
-We can see that this is the same approache that was taken by Matthew Ludwig.
+We can see that this is the same approach that was taken by Matthew Ludwig.
 
 Testing:
 
-
+We used a crossvalidation set approach, and splitted the data in a ration of 80/20(train/test). 
 
  
  Model:
@@ -659,21 +662,21 @@ Testing:
  - logistic regression
  - descision tree
  
- The approache we are comparing to used one model which is as follows:
+ The approach we are comparing to used one model which is as follows:
  
  "Final_Model <- glm(loan_status ~ loan_amnt + grade + annual_inc + int_bin + emp_bin, family = "binomial", data = training)"
 # Summary 
 
-We first generated a subset of the orignial lending-club-loan data and saved that file. 
+We first generated a subset of the original lending-club-loan data and saved that file. 
 
-With the new subset we started with exploratory data analysis, based on correlation matrix and, boxplots and plots we could identify importante variables and exclude correlating once. Based on the forgoing data exploration and checking the DataDescription we limited the amount of feautre. For case of simplicity and availalbe computation power we further had to limit the features. 
+With the new subset we started with exploratory data analysis, based on correlation matrix and, boxplots and plots we could identify importante variables and exclude correlating once. Based on the forgoing data exploration and checking the DataDescription we limited the amount of feautres. For case of simplicity and available computation power we further had to limit the features once again. 
 
-The toplevel approach for the default prediction refers to the CRIPS for Data Mining  <https://en.wikipedia.org/wiki/Cross-industry_standard_process_for_data_mining> and is simillar to most of the approaches found on the internet. After a general Data Preparation that is identical for the regression and classifaction task, we did the specific classification data preparation, as changing dependet variable to a 2-factor (1,0) variabble. Then the validation set approach was used to split the data into train & test data, to generally improve the model performance. With the Principal Component Analysis &  Partial Least Squares we limited the amount of features to consider. Furthermorde four different models where used ( KNN, Logistic Regression, Decision Trees, Random Forest) and the performance compared with a ROC curve. 
+The toplevel approach for the default prediction refers to the CRIPS for Data Mining  <https://en.wikipedia.org/wiki/Cross-industry_standard_process_for_data_mining> and is simillar to most of the approaches found on the internet. After a general Data Preparation that is identical for the regression and classifaction task, we did the specific classification data preparation, as changing dependet variable to a 2-factor (1,0) variable. Then the validation set approach was used to split the data into train & test data, to generally improve the model performance. With the Principal Component Analysis &  Partial Least Squares we limited the amount of features to consider. Furthermore four different models where used ( KNN, Logistic Regression, Decision Trees, Random Forest) and the performance compared with a ROC curve. 
 
-Nevertheless the analysis shows that its helpful with machine learning techniques to predict the interast rate and proability that a loan is defaulted.
+Nevertheless the analysis shows that its helpful with machine learning techniques to predict the interest rate and probability that a loan is defaulted. For us the logistic regression has the best results. At the ROC curve, we get the best true positive vs false postive ratio. 
 
 ## Room for improvement
 
 In future work, natural language processing (NLP) could be used to etraxt informatcion from Loan description or the job title. 
 Feature engineering could be implemented, e. g. the zip_code could be used to determine the unemployment rate. 
-Furthermore it would be intersting to spend more time on the performance tuning of each model, by using different parmaters for the fitting. 
+Furthermore it would be interesting to spend more time on the performance tuning of each model, by using different parameters for the fitting. 
