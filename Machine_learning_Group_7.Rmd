@@ -35,7 +35,7 @@ At this step we clear the workspace and install necessary packages for data proc
   library(pacman)
 
   # install and loading required packages
-  pacman::p_load(party, dummies, ranger, data.table, rmarkdown, tidyverse, caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, pROC, class,MLmetrics, tree, car, ridge, lmridge)
+  pacman::p_load(import, monomvn, party, dummies, ranger, data.table, rmarkdown, tidyverse, caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, pROC, class,MLmetrics, tree, car, ridge, lmridge)
 ```
    
 
@@ -259,7 +259,7 @@ dataset_reg <- subset(dataset_reg, select = -c(bc_util))
 ### Apply the “validation set approach” to reserve a meaningful amount of data for the test phase.
 ```{r validation set approach regression, cache=TRUE}
 
-dataset_reg <- subset(dataset_reg, select = c(int_rate, bc_util, delinq_2yrs, installment, initial_list_status, loan_status, revol_util, sub_grade, total_pymnt_inv))
+dataset_reg <- subset(dataset_reg, select = c(int_rate, bc_util, delinq_2yrs, installment, initial_list_status, loan_status, revol_util, sub_grade, total_pymnt_inv, out_prncp, open_acc, mo_sin_rcnt_rev_tl_op, total_rec_int, pct_tl_nvr_dlq, num_il_tl))
 
 # setting a seed for reproducability
 set.seed(7)
@@ -276,111 +276,82 @@ test.data.reg = dataset_reg[testRows,]
 control.reg <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
 ```
 
-```{r Linear Model analysis regression}
-fit.lm.reg <- train(int_rate~., data = test.data.reg, trControl = control.reg, method = "lm", na.action = na.pass)  
+```{r Linear Model analysis regression, cache=TRUE}
+fit.lm.reg <- train(int_rate~.,
+                    data = test.data.reg,
+                    trControl = control.reg,
+                    method = "lm",
+                    na.action = na.pass)  
 fit.lm.reg
 fit.lm.reg$finalModel
 plot(fit.lm.reg$finalModel)
 ```
 
+```{r Generalized Linear Model with Stepwise Feature Selection, cache=TRUE}
 
-```{r stepwise model, results = FALSE, cache=TRUE, include=FALSE, eval=FALSE}
-# should we use a gaussian model here?
-null_model <- glm(int_rate ~ 1, data = train.data.reg, family = "gaussian")
+fit.glmStepAIC.reg <- train(int_rate~.,
+                    data = test.data.reg,
+                    trControl = control.reg,
+                    method = "glmStepAIC",
+                    na.action = na.pass)
+fit.glmStepAIC.reg
+fit.glmStepAIC.reg$finalModel
+plot(fit.glmStepAIC.reg$finalModel)
 
-# Specify the partial model using a subset of the potential predictors
-partial_model <- glm(int_rate ~ ., data= train.data.reg, family = "gaussian")
+```
+```{r Bayesian Linear Ridge Regression, cache=TRUE}
 
-
-#  -emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date
-
-# This is taking too much time to process, stoped this at the 12th perdictor.
-# Use a forward stepwise algorithm to build a parsimonious model
-step_model <- step(null_model, scope = list(lower = null_model, upper = partial_model), direction = "forward", trace = 1)
-# #  int_rate ~ sub_grade + all_util + loan_status + total_pymnt +
-#     installment + initial_list_status + total_pymnt_inv + verification_status +
-#     loan_amnt + term + out_prncp_inv + inq_fi + last_pymnt_amnt +
-#     num_tl_op_past_12m + open_rv_12m + open_il_12m + sec_app_revol_util +
-#     num_bc_tl + out_prncp + max_bal_bc + pub_rec + total_bc_limit +
-#     open_acc + num_sats + purpose + total_rec_prncp
-
-# Estimate the stepwise probability
-step_prob <- predict(step_model, type = "response")
-
-# getting the step response
-step_response <- test.data.reg$int_rate
-
-# MAPE
-MAPE(step_prob, step_response)
+fit.bridge.reg <- train(int_rate~.,
+                    data = test.data.reg,
+                    trControl = control.reg,
+                    method = "bridge",
+                    na.action = na.pass)
+fit.bridge.reg
+fit.bridge.reg$finalModel
+plot(fit.bridge.reg$finalModel)
 ```
 
-```{r stepwise model Both direction elimination, cache=TRUE, include=FALSE, results=FALSE}
-# should we use a gaussian model here?
-null_model <- glm(int_rate ~ 1, data = train.data.reg, family = "gaussian")
+```{r Random Forest}
 
-# Specify the partial model using a subset of the potential predictors
-partial_model <- glm(int_rate ~ ., data=train.data.reg, family = "gaussian")
+fit.RF.reg <- train(int_rate~.,
+                    data = test.data.reg,
+                    trControl = control.reg,
+                    method = "parRF",
+                    na.action = na.pass)
+fit.RF.reg
+fit.RF.reg$finalModel
+plot(fit.RF.reg$finalModel)
+```
 
-step_model <- step(null_model, scope = list(lower = null_model, upper = partial_model), direction = "both", trace = 1)
+```{r Calculating TEST MAPE out of the models}
+# MAPE LM TEST
+MAPE(predict(fit.lm.reg, test.data.reg), test.data.reg$int_rate)
 
-saveRDS(step_model,"step_model_both")
-# Estimate the stepwise probability for the test set.
-step_prob <- predict(step_model, type = "response")
-step_test_response <- test.data.reg$int_rate
+# MAPE glmStepAIC TEST
+MAPE(predict(fit.glmStepAIC.reg, test.data.reg), test.data.reg$int_rate)
 
-step_prob <- predict(step_model, type = "response")
-step_train_response <- train.data.reg$int_rate
-# MAPE for test set
-MAPE(step_prob, step_test_response)
-# MAPE for train set
-MAPE(step_prob, step_train_response)
+# MAPE bridge TEST
+MAPE(predict(fit.bridge.reg, test.data.reg), test.data.reg$int_rate)
+
+# MAPE Randdom Forest TEST
+MAPE(predict(fit.RF.reg, test.data.reg), test.data.reg$int_rate)
 
 ```
 
+```{r Calculating TRAIN MAPE out of the models}
+# MAPE LM train
+MAPE(predict(fit.lm.reg, train.data.reg), train.data.reg$int_rate)
 
+# MAPE glmStepAIC train
+MAPE(predict(fit.glmStepAIC.reg, train.data.reg), train.data.reg$int_rate)
 
+# MAPE bridge train
+MAPE(predict(fit.bridge.reg, train.data.reg), train.data.reg$int_rate)
 
-```{r Ridge regression, cache=TRUE, include=FALSE, results=FALSE}
+# MAPE Randdom Forest train
+MAPE(predict(fit.RF.reg, train.data.reg), train.data.reg$int_rate)
 
-#vif(step_model)
-#model_testing <-lm(int_rate ~ sub_grade + out_prncp + open_acc + mo_sin_rcnt_rev_tl_op + total_rec_int +pct_tl_nvr_dlq + num_il_tl, data=train, na.action = na.omit)
-model_testing <-lm(int_rate ~ ., data=train.data.reg, na.action = na.omit)
-
-predicted <- predict (model_testing, data=test.data.reg)  # predict on test data
-compare <- cbind (test.data.reg$int_rate, predicted)  # combine actual and predicted
-mean (apply(compare, 1, min)/apply(compare, 1, max))
-linRidgeMod <- linearRidge(int_rate ~ ., data = subset(train.data.reg, select=-c(initial_list_status,loan_status)), na.action = na.omit)
-summary(linRidgeMod)
-predicted <- predict(linRidgeMod, test.data.reg)  # predict on test data
-compare <- cbind (actual=test.data.reg$int_rate, predicted)  # combine
-mean (apply(compare, 1, min)/apply(compare, 1, max))
 ```
-
-```{r Random Forest, cache=TRUE, include=FALSE}
-
-## random forest 
-#fit.reg.rf    <-train(int_rate ~ ., data=train, method="rf",
-               #trControl = control, preProc = c("zv","center","scale"))
-
-int_rate_RF <- randomForest(int_rate ~., data=train.data.reg, importance=TRUE, do.trace = TRUE)
-
-summary(int_rate_RF)
-
-#class.error
-plot(int_rate_RF)
-fitted.int_rate=predict(int_rate_RF)
-
-int_rate_RF_pred <- predict(int_rate_RF, newdata = test.data.reg)
-view(int_rate_RF_pred)
-table(int_rate_RF_pred, test.data.reg$int_rate)
-
-#ROC <- roc(int_rate_RF_pred, response_int_rate)
-#plot(ROC, col = "red")
-#auc(ROC)
-MAPE(int_rate_RF_pred, train.data.reg$int_rate)
-```
-
-
 ```{r compare MAPE out of the model}
 
 ```
