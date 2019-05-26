@@ -10,8 +10,9 @@ output:
 
 # Introduction
 
-We have the data from Lending Club (LC) which is a peer-to-peer online lending platform. The data contains information on the loans issued by LC including the details of the loans such as loan description, interest rate applied, if the debt was fully paid, date of last payment etc. Our goal is to find appropriate models for predicting interest rate for each request, as well as perform classification model for setting reliable default status.
+Our data comes from Lending Club (LC) which is a peer-to-peer online lending platform. The data contains information on the loans issued by LC including the details of the loans such as loan description, interest rate applied, if the debt was fully paid, date of last payment etc. Our goal is to find appropriate models for predicting interest rate for each request, as well as perform classification model for setting reliable default status.
 
+URL to source data: https://kaggle.com/wendykan/lending-club-loan-data
 
 Required steps:
 
@@ -41,7 +42,7 @@ At this step we clear the workspace and install necessary packages for data proc
 
 # Data Extraction
 
-In order to avoid to have to work with the whole original dataset from <https://www.kaggle.com/wendykan/lending-club-loan-data> dataset_7.Rds has been created as follows:
+In order to avoid to have to work with the whole original dataset from kaggle dataset_7.Rds has been created as follows:
 
 ```{r extract subset, eval=FALSE, include=FALSE}
 # load full dataset containing all loan data from 2007-2015
@@ -67,8 +68,9 @@ saveRDS(dataset_7, file = "dataset_7.Rds")
 Read the subset of data from the previous step 
 ```{r read prepared dataset_7.Rds}
 
-
+# Read the RDS file
 dataset <- readRDS(file = "dataset_7.Rds")
+# Setting seed
 set.seed(3452)
 dataset <- dataset[sample(1:nrow(dataset),20000),]
 
@@ -212,7 +214,7 @@ corrplot(mcor, type="upper", sig.level = 0.001, insig = "blank",number.font = 0)
 # plotting the loan amount vs the grade
 {ggplot(data = dataset_reg, mapping = aes(factor(sub_grade), int_rate), group = 2) +
   geom_boxplot()}
-# The sub_grade seems to have a strong influence on the interest rate
+# The sub_grade seems to have a strong correlation with the interest rate
 ```
 
 ```{r Data Exploration - interest rate vs home ownership}
@@ -226,12 +228,11 @@ corrplot(mcor, type="upper", sig.level = 0.001, insig = "blank",number.font = 0)
 # plotting the loan amount vs verification_status
 {ggplot(data = dataset_reg, mapping = aes(factor(verification_status), int_rate), group = 2) +
   geom_boxplot()}
-# The verification_status seems to also have an influence on the interest rate.
+# The verification_status seems to also have an correlation with the interest rate.
 
 ```
 
-## Main task:
-### Compare three different methods to perform regression, using the cross-validation method to compute the best parameters. Consider using some regularization for the parameters shrinkage. Test the train error rate, the CV error rate and the test error.
+
 ```{r Data Exploration lm, cache=TRUE, eval=FALSE}
 # lm on the whole dataset_reg
 lmp.fit=lm(int_rate~.,data = dataset_reg)
@@ -255,6 +256,8 @@ summary(lmp.fit)
 dataset_reg <- subset(dataset_reg, select = -c(bc_util))
                   
 ```
+## Main task:
+### Compare three different methods to perform regression, using the cross-validation method to compute the best parameters. Consider using some regularization for the parameters shrinkage. Test the train error rate, the CV error rate and the test error.
 
 ### Apply the “validation set approach” to reserve a meaningful amount of data for the test phase.
 ```{r validation set approach regression, cache=TRUE}
@@ -325,16 +328,23 @@ plot(fit.RF.reg$finalModel)
 
 ```{r Calculating TEST MAPE out of the models}
 # MAPE LM TEST
-MAPE(predict(fit.lm.reg, test.data.reg), test.data.reg$int_rate)
+mape_lm_test <- MAPE(predict(fit.lm.reg, test.data.reg), test.data.reg$int_rate)
 
 # MAPE glmStepAIC TEST
-MAPE(predict(fit.glmStepAIC.reg, test.data.reg), test.data.reg$int_rate)
+mape_glmStepAIC_test <- MAPE(predict(fit.glmStepAIC.reg, test.data.reg), test.data.reg$int_rate)
 
 # MAPE bridge TEST
-MAPE(predict(fit.bridge.reg, test.data.reg), test.data.reg$int_rate)
+mape_bridge_test <- MAPE(predict(fit.bridge.reg, test.data.reg), test.data.reg$int_rate)
 
-# MAPE Randdom Forest TEST
-MAPE(predict(fit.RF.reg, test.data.reg), test.data.reg$int_rate)
+# MAPE Random Forest TEST
+mape_rf_test <- MAPE(predict(fit.RF.reg, test.data.reg), test.data.reg$int_rate)
+
+test_mapes <- data.frame("LM" = mape_lm_test, "glmStep"= mape_glmStepAIC_test, "Brdige"= mape_bridge_test, "Random Forest" = mape_rf_test)
+
+# plot(test_mapes,x = test_mape)
+# # ggplot(test_mapes, aes(aes(x=as.numeric(test_mapes)))) + 
+#   geom_point()
+
 
 ```
 
