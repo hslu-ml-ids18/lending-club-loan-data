@@ -271,13 +271,12 @@ test.data.reg = dataset_reg[testRows,]
 
 
 ```
-```````{r cross validation, results=FALSE, cache=TRUE}
+
+```{r cross validation, results=FALSE, cache=TRUE}
 dataset_ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
 model_caret <- train(int_rate~., data = test.data.reg, trControl = dataset_ctrl, method = "lm", na.action = na.pass)  
 model_caret
 model_caret$finalModel
-
-```
 
 ```
 
