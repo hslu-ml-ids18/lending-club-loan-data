@@ -335,7 +335,7 @@ Fit the a extrem gradient boosting model.
 ```{r}
 
 if (file.exists("fit.egb.reg.rds")) {
-   fit.lm.reg <- readRDS("fit.egb.reg.rds")
+   fit.legbreg <- readRDS("fit.egb.reg.rds")
 } else {
     fit.egb.reg = train(int_rate~.,
                     data = train.data.reg,
@@ -344,7 +344,6 @@ if (file.exists("fit.egb.reg.rds")) {
                     method = "xgbTree"
     )
 }
-saveRDS(fit.egb.reg, "fit.egb.reg.rds")
 
 ```
 
@@ -377,7 +376,7 @@ MAPE(predict(fit.egb.reg, test.data.reg), test.data.reg$int_rate)
 # MAPE Random Forest TEST
 mape_rf_test <- MAPE(predict(fit.RF.reg, test.data.reg), test.data.reg$int_rate)
 
-test_mapes <- data.frame("LM" = mape_lm_test, "glmStep"= mape_glmStepAIC_test, "Brdige"= mape_bridge_test, "Random Forest" = mape_rf_test)
+test_mapes <- data.frame("LM" = mape_lm_test, "grdige"= mape_bridge_test, "Random Forest" = mape_rf_test)
 
 # plot(test_mapes,x = test_mape)
 # # ggplot(test_mapes, aes(aes(x=as.numeric(test_mapes)))) + 
