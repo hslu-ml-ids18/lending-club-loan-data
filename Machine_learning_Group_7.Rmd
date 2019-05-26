@@ -10,13 +10,10 @@ output:
 
 # Introduction
 
-What is the project about? What is our action plan?
-
 We have the data from Lending Club (LC) which is a peer-to-peer online lending platform. The data contains information on the loans issued by LC including the details of the loans such as loan description, interest rate applied, if the debt was fully paid, date of last payment etc. Our goal is to find appropriate models for predicting interest rate for each request, as well as perform classification model for setting reliable default status.
 
 
 Required steps:
-
 
 - Initialization of the environment. 
 - Data exploration through data visualization which helps to understand our dataset and its characteristics.
@@ -25,8 +22,6 @@ Required steps:
  
 - Part 2 - Classification Analysis - we take a step back in order to be sure that all necessary variables are included into our analysis, perform required transformations, define the models, check the errors and validate the results. 
 - Summary 
-
-
 
 # Initialize the environment
 
@@ -74,6 +69,8 @@ Read the subset of data from the previous step
 
 
 dataset <- readRDS(file = "dataset_7.Rds")
+set.seed(3452)
+dataset <- dataset[sample(1:nrow(dataset),20000),]
 
 ```  
 
@@ -84,7 +81,7 @@ dataset <- readRDS(file = "dataset_7.Rds")
 
 Preprocess the dataset, remove colums, check for na ... 
 
-```{r}
+```{r, include=FALSE}
   
   # sort dataset by colunm names, to facilite search
   dataset = dataset[ , order(names(dataset))]
@@ -97,7 +94,7 @@ Preprocess the dataset, remove colums, check for na ...
   # not_relevant: desc, id_2, addr_state, last_pymnt_d, next_pymnt_d, issue_d, title, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date
   # same data in every colum: policy_code
   # covariance: grade (of sub_grade)
-
+  
   dataset <- subset(dataset, select = -c(id_2, policy_code, desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
 
   # sub_grade has more than 32 levels which is a hard limit for random forest.
@@ -174,22 +171,9 @@ Preprocess the dataset, remove colums, check for na ...
 dataset_reg <- dataset
 
 ```
-### Apply the “validation set approach” to reserve a meaningful amount of data for the test phase.
-```{r validation set approach regression, cache=TRUE}
-# setting a seed for reproducability
-set.seed(7)
-# We randomly split our dataframe in a train and test set
-trainRows = sample(1:nrow(dataset_reg),0.5*nrow(dataset_reg))
-testRows = nrow(dataset_reg) - trainRows
-train = dataset_reg[trainRows,]
-test = dataset_reg[testRows,]
-# creating a small subset of data for quickly that models are runnining whithout any issues.
-# This won't be used for the analysis
-small_trainRows = sample(1:nrow(dataset_reg),0.1*nrow(dataset_reg))
-small_testRows = sample(nrow(dataset_reg) - small_trainRows,0.1*nrow(dataset_reg))
-small_train = dataset_reg[small_trainRows,]
-small_test = dataset_reg[small_testRows,]
-```
+
+
+
 ### Using one of the approaches for model selection discussed in class, reduce the number of predictors. For interpretability reasons, start with approaches that conserve the original predictor space. If any useful significant subset is possible, use a base transformation.
 
 ### Compute the correlation matrix for the selected set of predictors and the output variable, if useful, also using graphical representation.
@@ -240,15 +224,6 @@ corrplot(mcor, type="upper", sig.level = 0.001, insig = "blank",number.font = 0)
 
 ```
 
-```{r}
-lm.fit2=lm(int_rate~poly(sub_grade,2),data=dataset_reg)
-lm.fit4=lm(int_rate~poly(sub_grade,4),data=dataset_reg)
-lm.fit5=lm(int_rate~poly(sub_grade,5),data=dataset_reg)
-lm.fit6=lm(int_rate~poly(sub_grade,6),data=dataset_reg)
-lm.fit10=lm(int_rate~poly(sub_grade,10),data=dataset_reg)
-#anova(lm.fit,lm.fit2,lm.fit4,lm.fit5,lm.fit6,lm.fit10, na.action = na.omit)
-
-```
 ## Main task:
 ### Compare three different methods to perform regression, using the cross-validation method to compute the best parameters. Consider using some regularization for the parameters shrinkage. Test the train error rate, the CV error rate and the test error.
 ```{r Data Exploration lm, cache=TRUE, eval=FALSE}
@@ -275,12 +250,32 @@ dataset_reg <- subset(dataset_reg, select = -c(bc_util))
                   
 ```
 
+### Apply the “validation set approach” to reserve a meaningful amount of data for the test phase.
+```{r validation set approach regression, cache=TRUE}
+
+dataset_reg <- subset(dataset_reg, select = c(int_rate, bc_util, delinq_2yrs, installment, initial_list_status, loan_status, revol_util, sub_grade, total_pymnt_inv))
+
+# setting a seed for reproducability
+set.seed(7)
+# We randomly split our dataframe in a train and test set
+trainRows = sample(1:nrow(dataset_reg),0.5*nrow(dataset_reg))
+testRows = nrow(dataset_reg) - trainRows
+train.data.reg = dataset_reg[trainRows,]
+test.data.reg = dataset_reg[testRows,]
+
+
+```
+
+
+
+
+
 ```{r stepwise model, results = FALSE, cache=TRUE, include=FALSE, eval=FALSE}
 # should we use a gaussian model here?
-null_model <- glm(int_rate ~ 1, data = dataset_reg[small_trainRows,], family = "gaussian")
+null_model <- glm(int_rate ~ 1, data = train.data.reg, family = "gaussian")
 
 # Specify the partial model using a subset of the potential predictors
-partial_model <- glm(int_rate ~ ., data= dataset_reg[small_trainRows,], family = "gaussian")
+partial_model <- glm(int_rate ~ ., data= train.data.reg, family = "gaussian")
 
 
 #  -emp_title, -hardship_type, -issue_d, -desc, -title, -zip_code, -earliest_cr_line, -total_rec_late_fee, -last_pymnt_d, -next_pymnt_d, -last_credit_pull_d, -policy_code, -sec_app_earliest_cr_line, -deferral_term, -hardship_length, -debt_settlement_flag_date, -settlement_date
@@ -299,28 +294,28 @@ step_model <- step(null_model, scope = list(lower = null_model, upper = partial_
 step_prob <- predict(step_model, type = "response")
 
 # getting the step response
-step_response <- dataset_reg[small_testRows,]$int_rate
+step_response <- test.data.reg$int_rate
 
 # MAPE
 MAPE(step_prob, step_response)
 ```
 
-```{r stepwise model Both direction elimination , results = FALSE, cache=TRUE, eval=FALSE}
+```{r stepwise model Both direction elimination, cache=TRUE, include=FALSE, results=FALSE}
 # should we use a gaussian model here?
-null_model <- glm(int_rate ~ 1, data = dataset_reg[small_trainRows,], family = "gaussian")
+null_model <- glm(int_rate ~ 1, data = train.data.reg, family = "gaussian")
 
 # Specify the partial model using a subset of the potential predictors
-partial_model <- glm(int_rate ~ ., data=dataset_reg[small_trainRows,], family = "gaussian")
+partial_model <- glm(int_rate ~ ., data=train.data.reg, family = "gaussian")
 
 step_model <- step(null_model, scope = list(lower = null_model, upper = partial_model), direction = "both", trace = 1)
 
 saveRDS(step_model,"step_model_both")
 # Estimate the stepwise probability for the test set.
 step_prob <- predict(step_model, type = "response")
-step_test_response <- dataset_reg[small_testRows,]$int_rate
+step_test_response <- test.data.reg$int_rate
 
 step_prob <- predict(step_model, type = "response")
-step_train_response <- dataset_reg[small_trainRows,]$int_rate
+step_train_response <- train.data.reg$int_rate
 # MAPE for test set
 MAPE(step_prob, step_test_response)
 # MAPE for train set
@@ -331,56 +326,51 @@ MAPE(step_prob, step_train_response)
 
 
 
-```{r, Ridge regression, results=FALSE}
-vif(step_model)
-model_testing <-lm(int_rate ~ sub_grade + out_prncp + open_acc + mo_sin_rcnt_rev_tl_op + total_rec_int +pct_tl_nvr_dlq + num_il_tl, data=small_train, na.action = na.omit)
-predicted <- predict (model_testing, data=small_test)  # predict on test data
-compare <- cbind (small_test$int_rate, predicted)  # combine actual and predicted
+```{r Ridge regression, cache=TRUE, include=FALSE, results=FALSE}
+
+#vif(step_model)
+#model_testing <-lm(int_rate ~ sub_grade + out_prncp + open_acc + mo_sin_rcnt_rev_tl_op + total_rec_int +pct_tl_nvr_dlq + num_il_tl, data=train, na.action = na.omit)
+model_testing <-lm(int_rate ~ ., data=train.data.reg, na.action = na.omit)
+
+predicted <- predict (model_testing, data=test.data.reg)  # predict on test data
+compare <- cbind (test.data.reg$int_rate, predicted)  # combine actual and predicted
 mean (apply(compare, 1, min)/apply(compare, 1, max))
-linRidgeMod <- linearRidge(int_rate ~ sub_grade + out_prncp + open_acc + mo_sin_rcnt_rev_tl_op + total_rec_int +pct_tl_nvr_dlq + num_il_tl, data = small_train)
+linRidgeMod <- linearRidge(int_rate ~ ., data = subset(train.data.reg, select=-c(initial_list_status,loan_status)), na.action = na.omit)
 summary(linRidgeMod)
-predicted <- predict(linRidgeMod, small_test)  # predict on test data
-compare <- cbind (actual=small_test$int_rate, predicted)  # combine
+predicted <- predict(linRidgeMod, test.data.reg)  # predict on test data
+compare <- cbind (actual=test.data.reg$int_rate, predicted)  # combine
 mean (apply(compare, 1, min)/apply(compare, 1, max))
 ```
 
-```{r Random Forest, results= False, cache=TRUE}
-int_rate_RF <-  foreach(ntree=rep(125, 4), .combine=combine, .packages='randomForest')
+```{r Random Forest, cache=TRUE, include=FALSE}
 
-int_rate_RF <- randomForest(int_rate ~., data=dataset_reg, subset = small_trainRows, importance=TRUE, do.trace = TRUE)
+## random forest 
+#fit.reg.rf    <-train(int_rate ~ ., data=train, method="rf",
+               #trControl = control, preProc = c("zv","center","scale"))
 
-int_rate_RF
+int_rate_RF <- randomForest(int_rate ~., data=train.data.reg, importance=TRUE, do.trace = TRUE)
+
 summary(int_rate_RF)
 
-class.error
+#class.error
 plot(int_rate_RF)
 fitted.int_rate=predict(int_rate_RF)
 
-int_rate_RF_pred <- predict(int_rate_RF, newdata = dataset_reg[small_testRows,])
+int_rate_RF_pred <- predict(int_rate_RF, newdata = test.data.reg)
 view(int_rate_RF_pred)
-table(int_rate_RF_pred, small_test$int_rate)
-response_int_rate <- dataset_reg[small_trainRows,]$int_rate
-ROC <- roc(int_rate_RF_pred, response_int_rate)
-plot(ROC, col = "red")
-auc(ROC)
-MAPE()
-saveRDS(int_rate_RF, file = "int_rate_RF")
-```
-```{r Random Forest Ranger, cache= TRUE}
-model2 <- train(int_rate ~ sub_grade, data = dataset_reg[small_trainRows,], method = "ranger")
-plot(model2)
+table(int_rate_RF_pred, test.data.reg$int_rate)
+
+#ROC <- roc(int_rate_RF_pred, response_int_rate)
+#plot(ROC, col = "red")
+#auc(ROC)
+MAPE(int_rate_RF_pred, train.data.reg$int_rate)
 ```
 
 
-```{r, Logistic regression, results=False}
+```{r compare MAPE out of the model}
 
-fit_glm <- glm(int_rate ~. , data=subset(dataset_reg, select=c(-id_2), family = binomial))
-summary(fit_glm)
-glm.probs <- predict(fit_glm, type = "response")
-glm.probs[1:5]
-#No idea how to interpet it
 ```
-  
+
    
 # Part 2 - Classification Analysis
 
@@ -426,12 +416,13 @@ set.seed(7)
 # random split into  train and test set, with a ratio of 20:80
 trainIndex <- sample(1:nrow(dataset_cla),0.8*nrow(dataset_cla))
 
-train.data <- dataset_cla[trainIndex,]
-test.data  <- dataset_cla[-trainIndex,]
+train.data.cla <- dataset_cla[trainIndex,]
+test.data.cla  <- dataset_cla[-trainIndex,]
 
 ```
 ## Data Exploration
-```{rData Exploration Correlation}
+
+```{r Data Exploration Correlation, eval=FALSE}
 {ggplot(data = dataset_cla, mapping = aes(defaulted, int_rate))
 + geom_point()}
 
@@ -449,7 +440,7 @@ Now we can go over to do the analysis on the dataset. Therefore we use differnt 
 ```{r}
 # Compile cross-validation settings
 set.seed(100)
-myfolds <- createMultiFolds(train.data, k = 5, times = 10)
+myfolds <- createMultiFolds(train.data.cla, k = 5, times = 10)
 control <- trainControl("repeatedcv", index = myfolds, selectionFunction = "oneSE")
  
 ```
@@ -459,7 +450,7 @@ Perform Partial Least Squares Regression with caret package, to have a standariz
 ```{r PLS analysis}
 
 # Train PLS model
-mod1 <- train(defaulted ~ ., data = train.data,
+mod1 <- train(defaulted ~ ., data = train.data.cla,
  method = "pls",
  metric = "Accuracy",
  tuneLength = 20,
@@ -474,7 +465,7 @@ Perform Principal Component Analysis with caret package, to have a standarized h
 
 ```{r PCA analysis}
 # PCA-DA
-mod2 <- train(defaulted ~ ., data = train.data,
+mod2 <- train(defaulted ~ ., data = train.data.cla,
 method = "lda",
 metric = "Accuracy",
 trControl = control,
@@ -493,22 +484,22 @@ plot(varImp(mod1), mod1$bestTune$ncomp, main = "PLS-DA")
 
 ```
 
-# based on the results from PLS analysis in the step before, limit the dataset to the most relevant variables. 
+## based on the results from PLS analysis in the step before, limit the dataset to the most relevant variables. 
 
 ```{r eval=FALSE, results="hide"}
 
-train.data <- subset(train.data, select = c(defaulted, total_rec_prncp, recoveries, collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term))
-test.data  <- subset(test.data, select = c(defaulted, total_rec_prncp, recoveries, collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term))
+train.data.cla <- subset(train.data.cla, select = c(defaulted, total_rec_prncp, recoveries, collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term))
+test.data.cla  <- subset(test.data.cla, select = c(defaulted, total_rec_prncp, recoveries, collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term))
 ```
 
 ### Perform the classification using KNN, Logistic Regression, Decision tree and Random forest.
 
 Train a model with KNN
 
-```{r Perform KNN with caret, include=FALSE}
+```{r Perform KNN with caret}
 ## knn
 fit.knn  <- train(defaulted ~ ., 
-                data = train.data, 
+                data = train.data.cla, 
                 method = "knn",
                 trControl = control,
                 preProc = c("zv","center","scale")
@@ -518,10 +509,10 @@ fit.knn  <- train(defaulted ~ .,
 
 Train a model with Logistic Regression
 
-```{r Perform Logistic Regression with caret, include=FALSE}
+```{r Perform Logistic Regression with caret}
 ## logistic regression
 fit.lreg <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
-                data = train.data, 
+                data = train.data.cla, 
                 method = "glm",
                 trControl = control,
                 family=binomial(),
@@ -532,10 +523,10 @@ fit.lreg <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_pr
 
 Train a model with Decision Trees
 
-```{r Perform Decision tree with caret, include=FALSE}
+```{r Perform Decision tree with caret}
 ## decision tree 
 fit.dtree<-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
-               data=train.data,
+               data=train.data.cla,
                method="ctree",
                trControl = control,
                preProc = c("zv","center","scale"))
@@ -543,10 +534,10 @@ fit.dtree<-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_pr
 
 Train a model with Random Forest
 
-```{r Perform Random Forest with caret, include=FALSE}
+```{r Perform Random Forest with caret}
 ## random forest 
 fit.rf<-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
-               data=train.data,
+               data=train.data.cla,
                method="rf",
                trControl = control,
                preProc = c("zv","center","scale"))
@@ -556,13 +547,13 @@ fit.rf<-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp
 
 ```{r ROC Plot}
 par(pty = "s")
-roc(test.data$defaulted, as.numeric(predict(fit.dtree, test.data)), plot=TRUE, legacy.axes=TRUE, percent=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, print.auc = TRUE, print.auc.y=80, print.auc.x=30)
+roc(test.data.cla$defaulted, as.numeric(predict(fit.dtree, test.data.cla)), plot=TRUE, legacy.axes=TRUE, percent=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, print.auc = TRUE, print.auc.y=80, print.auc.x=30)
 
-plot.roc(test.data$defaulted, as.numeric(predict(fit.rf, test.data)), percent=TRUE, col="#b8377e", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=70, print.auc.x=30)
+plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.rf, test.data.cla)), percent=TRUE, col="#b8377e", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=70, print.auc.x=30)
 
-plot.roc(test.data$defaulted, as.numeric(predict(fit.dtree, test.data)), percent=TRUE, col="#b87137", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=60, print.auc.x=30)
+plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.dtree, test.data.cla)), percent=TRUE, col="#b87137", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=60, print.auc.x=30)
 
-plot.roc(test.data$defaulted, as.numeric(predict(fit.knn, test.data)), percent=TRUE, col="#7eb837", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=50, print.auc.x=30)
+plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.knn, test.data.cla)), percent=TRUE, col="#7eb837", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=50, print.auc.x=30)
 	
 	legend("bottomright", legend=c("Decission Tree", "Random Forest", "Logisitic Regression", "KNN"), col=c("#377eb8", "#b8377e", "#b87137", "#7eb837"), lwd=4)
 	
@@ -573,16 +564,16 @@ plot.roc(test.data$defaulted, as.numeric(predict(fit.knn, test.data)), percent=T
 ```{r Perform Confusion Matrix for each method}
 
 #Confusion Matrix KNN
-confusionMatrix( predict(fit.knn, test.data), test.data$defaulted)    #Test
+confusionMatrix( predict(fit.knn, test.data.cla), test.data.cla$defaulted)    #Test
 
 #Confusion Matrix Logistic Regression
-confusionMatrix( predict(fit.lreg, test.data), test.data$defaulted)   #Test
+confusionMatrix( predict(fit.lreg, test.data.cla), test.data.cla$defaulted)   #Test
 
 #Confusion Matrix Decision Trees
-confusionMatrix( predict(fit.dtree, test.data), test.data$defaulted)  #Test
+confusionMatrix( predict(fit.dtree, test.data.cla), test.data.cla$defaulted)  #Test
 
 #Confusion Matrix Random Forest
-confusionMatrix( predict(fit.rf, test.data), test.data$defaulted)     #Test
+confusionMatrix( predict(fit.rf, test.data.cla), test.data.cla$defaulted)     #Test
 ```
 
 
@@ -591,13 +582,5 @@ confusionMatrix( predict(fit.rf, test.data), test.data$defaulted)     #Test
 @ToDo
  
 # Summary 
-
-
-
-
-
-
-
-
 
 @ToDo
