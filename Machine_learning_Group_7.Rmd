@@ -395,26 +395,26 @@ For the remaining observations, we check if the loan_status is “Fully Paid”.
 # set dataset as data.table::datatable
 setDT(dataset)
 
-# filter out all observations with loan_status == Current
-dataset <- dataset[loan_status != 'Current']
+# filter out all observations with loan_status == Current and storing it in a separate Data
+dataset_cla <- dataset[loan_status != 'Current']
 
 # change all the loan status that are not "Fully Paid" to 1
-dataset$defaulted[dataset$loan_status != "Fully Paid"] <- 1
+dataset_cla$defaulted[dataset_cla$loan_status != "Fully Paid"] <- 1
 
 # change level of defaulted to 1 and 0 
-levels(dataset$defaulted) = c(1, 0)
+levels(dataset_cla$defaulted) = c(1, 0)
 
 # Change all the defaulted values that aren't "Default" to 0
-dataset$defaulted[is.na(dataset$defaulted)] <- 0
+dataset_cla$defaulted[is.na(dataset_cla$defaulted)] <- 0
 
 # remove origin variable, because defaulted is relevant now
-dataset$loan_status <- NULL
+dataset_cla$loan_status <- NULL
 
 # set defaulted as factor
-dataset$defaulted <- as.factor(dataset$defaulted)
+dataset_cla$defaulted <- as.factor(dataset_cla$defaulted)
 
 # confirm steps below, by checking results
-table(dataset$defaulted)
+table(dataset_cla$defaulted)
 ```
 
 ### Create a validation set. 
@@ -424,10 +424,19 @@ table(dataset$defaulted)
 set.seed(7)
 
 # random split into  train and test set, with a ratio of 20:80
-trainIndex <- sample(1:nrow(dataset),0.8*nrow(dataset))
+trainIndex <- sample(1:nrow(dataset_cla),0.8*nrow(dataset_cla))
 
-train.data <- dataset[trainIndex,]
-test.data  <- dataset[-trainIndex,]
+train.data <- dataset_cla[trainIndex,]
+test.data  <- dataset_cla[-trainIndex,]
+
+```
+## Data Exploration
+```{rData Exploration Correlation}
+{ggplot(data = dataset_cla, mapping = aes(defaulted, int_rate))
++ geom_point()}
+
+{ggplot(data = dataset_reg, mapping = aes(factor(verification_status), int_rate), group = 2) +
+  geom_boxplot()}
 
 ```
 
