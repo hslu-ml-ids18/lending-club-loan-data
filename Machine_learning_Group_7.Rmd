@@ -451,8 +451,8 @@ Now we can go over to do the analysis on the dataset. Therefore we use differnt 
 ```{r cross-validation Classification}
 # Compile cross-validation settings
 set.seed(100)
-myfolds <- createMultiFolds(train.data.cla, k = 5, times = 10)
-control <- trainControl("repeatedcv", index = myfolds, selectionFunction = "oneSE")
+myfolds.cla <- createMultiFolds(train.data.cla, k = 5, times = 10)
+control.cla <- trainControl("repeatedcv", index = myfolds.cla, selectionFunction = "oneSE")
  
 ```
 
@@ -461,14 +461,14 @@ Perform Partial Least Squares Regression with caret package, to have a standariz
 ```{r PLS analysis}
 
 # Train PLS model
-mod1 <- train(defaulted ~ ., data = train.data.cla,
+fit.pls.cla <- train(defaulted ~ ., data = train.data.cla,
  method = "pls",
  metric = "Accuracy",
  tuneLength = 20,
- trControl = control,
+ trControl = control.cla,
  preProc = c("zv","center","scale"))
 
-plot(mod1)
+plot(fit.pls.cla)
 
 ```
 
@@ -476,10 +476,10 @@ Perform Principal Component Analysis with caret package, to have a standarized h
 
 ```{r PCA analysis}
 # PCA-DA
-mod2 <- train(defaulted ~ ., data = train.data.cla,
+fit.lda.cla <- train(defaulted ~ ., data = train.data.cla,
 method = "lda",
 metric = "Accuracy",
-trControl = control,
+trControl = control.cla,
 preProc = c("zv","center","scale","pca"))
 ```
 
@@ -487,11 +487,11 @@ Compile models and compare performance
 
 ```{r, message=FALSE, warning=FALSE, results="hide"}
 
-models <- resamples(list("PLS-DA" = mod1, "PCA-DA" = mod2))
+models <- resamples(list("PLS-DA" = fit.pls.cla, "PCA-DA" = fit.lda.cla))
 bwplot(models, metric = "Accuracy")
 
-plot(varImp(mod1), mod1$bestTune$ncomp, main = "PLS-DA")
-#plot(varImp(mod2), 5, main = "PCA-DA")
+plot(varImp(fit.pls.cla), fit.pls.cla$bestTune$ncomp, main = "PLS-DA")
+#plot(varImp(fit.lda.cla), 5, main = "PCA-DA")
 
 ```
 
@@ -509,10 +509,10 @@ Train a model with KNN
 
 ```{r Perform KNN with caret}
 ## knn
-fit.knn  <- train(defaulted ~ ., 
+fit.knn.cla  <- train(defaulted ~ ., 
                 data = train.data.cla, 
                 method = "knn",
-                trControl = control,
+                trControl = control.cla,
                 preProc = c("zv","center","scale")
                 ) 
 
@@ -522,10 +522,10 @@ Train a model with Logistic Regression
 
 ```{r Perform Logistic Regression with caret}
 ## logistic regression
-fit.lreg <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
+fit.lreg.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
                 data = train.data.cla, 
                 method = "glm",
-                trControl = control,
+                trControl = control.cla,
                 family=binomial(),
                 preProc = c("zv","center","scale")
                 ) 
@@ -536,10 +536,10 @@ Train a model with Decision Trees
 
 ```{r Perform Decision tree with caret}
 ## decision tree 
-fit.dtree<-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
+fit.dtree.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
                data=train.data.cla,
                method="ctree",
-               trControl = control,
+               trControl = control.cla,
                preProc = c("zv","center","scale"))
 ```
 
@@ -547,10 +547,10 @@ Train a model with Random Forest
 
 ```{r Perform Random Forest with caret}
 ## random forest 
-fit.rf<-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
+fit.rf.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp + last_pymnt_amnt + total_pymnt, 
                data=train.data.cla,
                method="rf",
-               trControl = control,
+               trControl = control.cla,
                preProc = c("zv","center","scale"))
 ```
 
@@ -558,13 +558,13 @@ fit.rf<-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp
 
 ```{r ROC Plot}
 par(pty = "s")
-roc(test.data.cla$defaulted, as.numeric(predict(fit.dtree, test.data.cla)), plot=TRUE, legacy.axes=TRUE, percent=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, print.auc = TRUE, print.auc.y=80, print.auc.x=30)
+roc(test.data.cla$defaulted, as.numeric(predict(fit.dtree.cla, test.data.cla)), plot=TRUE, legacy.axes=TRUE, percent=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, print.auc = TRUE, print.auc.y=80, print.auc.x=30)
 
-plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.rf, test.data.cla)), percent=TRUE, col="#b8377e", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=70, print.auc.x=30)
+plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.rf.cla, test.data.cla)), percent=TRUE, col="#b8377e", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=70, print.auc.x=30)
 
-plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.dtree, test.data.cla)), percent=TRUE, col="#b87137", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=60, print.auc.x=30)
+plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.lreg.cla, test.data.cla)), percent=TRUE, col="#b87137", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=60, print.auc.x=30)
 
-plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.knn, test.data.cla)), percent=TRUE, col="#7eb837", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=50, print.auc.x=30)
+plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.knn.cla, test.data.cla)), percent=TRUE, col="#7eb837", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=50, print.auc.x=30)
 	
 	legend("bottomright", legend=c("Decission Tree", "Random Forest", "Logisitic Regression", "KNN"), col=c("#377eb8", "#b8377e", "#b87137", "#7eb837"), lwd=4)
 	
@@ -575,23 +575,28 @@ plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.knn, test.data.cla)), p
 ```{r Perform Confusion Matrix for each method}
 
 #Confusion Matrix KNN
-confusionMatrix( predict(fit.knn, test.data.cla), test.data.cla$defaulted)    #Test
+confusionMatrix( predict(fit.knn.cla, test.data.cla), test.data.cla$defaulted)    #Test
 
 #Confusion Matrix Logistic Regression
-confusionMatrix( predict(fit.lreg, test.data.cla), test.data.cla$defaulted)   #Test
+confusionMatrix( predict(fit.lreg.cla, test.data.cla), test.data.cla$defaulted)   #Test
 
 #Confusion Matrix Decision Trees
-confusionMatrix( predict(fit.dtree, test.data.cla), test.data.cla$defaulted)  #Test
+confusionMatrix( predict(fit.dtree.cla, test.data.cla), test.data.cla$defaulted)  #Test
 
 #Confusion Matrix Random Forest
-confusionMatrix( predict(fit.rf, test.data.cla), test.data.cla$defaulted)     #Test
+confusionMatrix( predict(fit.rf.cla, test.data.cla), test.data.cla$defaulted)     #Test
 ```
 
 
 ### Conceptually compare your approach with a solution existing for this problem. (Default prediction is a very well-known problem in literature).
 
-@ToDo
+
  
 # Summary 
+
+## Room for improvement
+For case of simplicity and availalbe computation power only a limit set of features is used. 
+In future work, natural language processing (NLP) could be used to etraxt informatcion from Loan description or the job title. 
+Feature engineering could be implemented, e. g. the zip_code could be used to determine the unemployment rate. 
 
 @ToDo
