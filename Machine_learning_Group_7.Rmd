@@ -178,15 +178,21 @@ dataset_reg <- dataset
 
 ### Compute the correlation matrix for the selected set of predictors and the output variable, if useful, also using graphical representation.
 ```{r correlation matrix}
-# correlation matrix by p-value
-corrmatrix <- subset(dataset_reg, select = c(-term, -home_ownership, -initial_list_status, -application_type, -verification_status_joint, -hardship_flag, -hardship_type, -hardship_reason, -hardship_type, -hardship_loan_status, -hardship_status, -disbursement_method, -debt_settlement_flag, -verification_status, -loan_status, -pymnt_plan, -purpose, -settlement_status))
+# correlation matrix by p-value, removing non-numericals for this. 
+corrmatrix <- subset(dataset_reg, select = c(-term, -home_ownership, -initial_list_status, -application_type, -verification_status_joint, -hardship_flag, -hardship_type, -hardship_loan_status, -hardship_status, -disbursement_method, -debt_settlement_flag, -verification_status, -loan_status, -pymnt_plan, -purpose, -settlement_status, -acc_now_delinq, -hardship_reason))
 mcor <- cor(corrmatrix)
+view(mcor)
+# From the correlation matrix we can observe that fir int_rate, sub_grade is the most significant factor with (0.976), followed by revol_util with (0.265).
+
+# We can plot the correlation matrix to visualy inspect it.
+
 corrplot(mcor, type="upper", sig.level = 0.001, insig = "blank",number.font = 0)
+
+# Here we can observe the there is some covariance between our factors, indicated by darker blue or red points.
 # correlogram combined with significance test <- only correlations that are relevant are shown in the plot
 # still gives out na error<- how can we remove all nas to make it work?
-
-## Data Exploration
 ```
+## Data Exploration
 
 ```{r Data Exploration - interest rate vs loan amount}
 # plotting the loan amount vs the interest rate
@@ -266,7 +272,17 @@ test.data.reg = dataset_reg[testRows,]
 
 ```
 
+```{r Bayesian Generalized Linear Model analysis regression}
 
+# Train glmnet model
+glmnet_reg <- train(defaulted ~ ., data = train.data.reg,
+ method = "bayesglm",
+ trControl = control.reg,
+ preProc = c("zv","center","scale"))
+
+plot(glmnet_reg)
+
+```
 
 
 
@@ -422,13 +438,10 @@ test.data.cla  <- dataset_cla[-trainIndex,]
 ```
 ## Data Exploration
 
-```{r Data Exploration Correlation, eval=FALSE}
-{ggplot(data = dataset_cla, mapping = aes(defaulted, int_rate))
-+ geom_point()}
-
-{ggplot(data = dataset_reg, mapping = aes(factor(verification_status), int_rate), group = 2) +
-  geom_boxplot()}
-
+```{r Data Exploration Classification defaulted int_rate}
+{ggplot(data = dataset_cla, mapping = aes(defaulted, int_rate)) +
+    geom_boxplot()}
+# We can see that credits who defaulted generally have a higher int_rate
 ```
 
 ## Main tasks:
@@ -437,7 +450,7 @@ Now we can go over to do the analysis on the dataset. Therefore we use differnt 
 
 ### Use Principal Component Analysis for base transformation and then compare it with the Partial Least Squares Regression result. Select the best base with cross validation, using the better of the two approaches.
 
-```{r}
+```{r cross-validation Classification}
 # Compile cross-validation settings
 set.seed(100)
 myfolds <- createMultiFolds(train.data.cla, k = 5, times = 10)
