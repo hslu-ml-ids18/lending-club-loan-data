@@ -137,16 +137,7 @@ Preprocess the dataset, remove colums, check for na ...
   
   dataset <- mutate_if(dataset, is.factor, ~replace(., is.na(.), "NA"))
   
-  # change columns to character¨
-  # dataset$hardship_type <- as.character(dataset$hardship_type)
-  # dataset$hardship_reason <- as.character(dataset$hardship_reason)
-  # dataset$hardship_status <- as.character(dataset$hardship_status)
-  # dataset$hardship_loan_status <- as.character(dataset$hardship_loan_status)
-  # dataset$settlement_status <- as.character(dataset$settlement_status)
-  # dataset$verification_status_joint <- as.character(dataset$verification_status_joint)
-  # 
-  # change empty character columns to "NA"
-  # 
+   # 
   dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
   # 
   
@@ -187,15 +178,14 @@ dataset_reg <- dataset
 corrmatrix <- subset(dataset_reg, select = c(-term, -home_ownership, -initial_list_status, -application_type, -verification_status_joint, -hardship_flag, -hardship_type, -hardship_loan_status, -hardship_status, -disbursement_method, -debt_settlement_flag, -verification_status, -loan_status, -pymnt_plan, -purpose, -settlement_status, -acc_now_delinq, -hardship_reason))
 mcor <- cor(corrmatrix)
 view(mcor)
-# From the correlation matrix we can observe that fir int_rate, sub_grade is the most significant factor with (0.976), followed by revol_util with (0.265).
+# From the correlation matrix we can observe that for int_rate, sub_grade is the most significant factor with (0.976), followed by revol_util with (0.265).
 
-# We can plot the correlation matrix to visualy inspect it.
+# We can plot the correlation matrix to visually inspect it.
 
 corrplot(mcor, type="upper", sig.level = 0.001, insig = "blank",number.font = 0)
 
-# Here we can observe the there is some covariance between our factors, indicated by darker blue or red points.
-# correlogram combined with significance test <- only correlations that are relevant are shown in the plot
-# still gives out na error<- how can we remove all nas to make it work?
+# Here we can observe that there is some covariance between our factors, indicated by darker blue or red points.
+# correlogram combined with significance test <- only correlations that are relevant are shown in the plot.
 ```
 ## Data Exploration
 
@@ -329,7 +319,7 @@ plot(fit.lm.reg$finalModel)
 
 ```
 
-Fit the a extrem gradient boosting model.
+Fit the a extreme gradient boosting model.
 
 ```{r}
 
@@ -471,7 +461,7 @@ control.cla <- trainControl("repeatedcv", index = myfolds.cla, selectionFunction
  
 ```
 
-Perform Partial Least Squares Regression with caret package, to have a standarized handling.
+Perform Partial Least Squares Regression with caret package, to have a standartized handling.
 
 ```{r PLS analysis}
 
@@ -487,7 +477,7 @@ plot(fit.pls.cla)
 
 ```
 
-Perform Principal Component Analysis with caret package, to have a standarized handling.
+Perform Principal Component Analysis with caret package, to have a standartized handling.
 
 ```{r PCA analysis}
 # PCA-DA
@@ -626,32 +616,32 @@ URL: <https://rstudio-pubs-static.s3.amazonaws.com/275340_24f229732ac04bf182ccae
 
 
 Replacing missing data:
-In our case missing data for int_rate was simply removed, other variables that did have missing data we treated as follow:
+In our case missing data for int_rate was simply removed, other variables that did have missing data we treated as follows:
 - for numericals values we dummy coded them with a '-1' in the approach.
-- for factors we replaced missing values with 'unkown'
+- for factors we replaced missing values with 'unknown'
 
 In the approach we're comparing the int_rate used a similar approach named "Missing Not At Random".
 Which basically replaced the missing int_rate value by 'Missing'
 
 Outliers:
 We kept all the outliers and did not try to get these out of our data.
-In the approach we are comparing outliers were removed. 
+In the approach we are comparing, outliers were removed. 
  
 Sampling:
 
 We first started with a very small subset (1000 rows) to get ahold if the models we were running were doing so correctly. In our final approach we are using 20000 rows as using any more is too computationaly intensive for the hardware we have.
 
-In the approach we are comparing too the whole dataset is of 29092 row. 20000 are used for training and 9092 are used from testing.
+In the approach we are comparing to the whole dataset is of 29092 row. 20000 are used for training and 9092 are used from testing.
 
 Parameter selection 
-To find out which parameters were usefull we used a logistic regression and a stepwise regression.
+To find out which parameters were useful, we used a logistic regression and a stepwise regression.
 
-This helped us to select a handfull of predictors that were deemed relevant for our models based upon the p-value.
+This helped us to select a handful set of predictors that were deemed relevant for our models based upon the p-value.
 We can see that this is the same approach that was taken by Matthew Ludwig.
 
 Testing:
 
-We used a crossvalidation set approach, and splitted the data in a ration of 80/20(train/test). 
+We used a crossvalidation set approach, and splitted the data in a ratio of 80/20(train/test). 
 
  
  Model:
@@ -669,14 +659,14 @@ We used a crossvalidation set approach, and splitted the data in a ration of 80/
 
 We first generated a subset of the original lending-club-loan data and saved that file. 
 
-With the new subset we started with exploratory data analysis, based on correlation matrix and, boxplots and plots we could identify importante variables and exclude correlating once. Based on the forgoing data exploration and checking the DataDescription we limited the amount of feautres. For case of simplicity and available computation power we further had to limit the features once again. 
+With the new subset we started with exploratory data analysis, based on correlation matrix and, boxplots and plots we could identify important variables and exclude correlating ones. Based on the forgoing data exploration and checking the DataDescription we limited the amount of feautres. For case of simplicity and available computation power we further had to limit the features once again. 
 
-The toplevel approach for the default prediction refers to the CRIPS for Data Mining  <https://en.wikipedia.org/wiki/Cross-industry_standard_process_for_data_mining> and is simillar to most of the approaches found on the internet. After a general Data Preparation that is identical for the regression and classifaction task, we did the specific classification data preparation, as changing dependet variable to a 2-factor (1,0) variable. Then the validation set approach was used to split the data into train & test data, to generally improve the model performance. With the Principal Component Analysis &  Partial Least Squares we limited the amount of features to consider. Furthermore four different models where used ( KNN, Logistic Regression, Decision Trees, Random Forest) and the performance compared with a ROC curve. 
+The toplevel approach for the default prediction refers to the CRIPS for Data Mining  <https://en.wikipedia.org/wiki/Cross-industry_standard_process_for_data_mining> and is similar to most of the approaches found on the internet. After a general Data Preparation that is identical for the regression and classifiction task, we did the specific classification data preparation, as changing dependent variable to a 2-factor (1,0) variable. Then the validation set approach was used to split the data into train & test data, to generally improve the model performance. With the Principal Component Analysis &  Partial Least Squares we limited the amount of features to consider. Furthermore four different models were used (KNN, Logistic Regression, Decision Trees, Random Forest) and the performance compared with a ROC curve. 
 
-Nevertheless the analysis shows that its helpful with machine learning techniques to predict the interest rate and probability that a loan is defaulted. For us the logistic regression has the best results. At the ROC curve, we get the best true positive vs false postive ratio. 
+Nevertheless, the analysis shows that it's helpful with machine learning techniques to predict the interest rate and probability that a loan is defaulted. For us the logistic regression has the best results. At the ROC curve, we get the best true positive vs false postive ratio. 
 
 ## Room for improvement
 
-In future work, natural language processing (NLP) could be used to etraxt informatcion from Loan description or the job title. 
+In future work, natural language processing (NLP) could be used to extract informatcion from Loan description or the job title. 
 Feature engineering could be implemented, e. g. the zip_code could be used to determine the unemployment rate. 
 Furthermore it would be interesting to spend more time on the performance tuning of each model, by using different parameters for the fitting. 
