@@ -273,25 +273,15 @@ test.data.reg = dataset_reg[testRows,]
 ```
 
 ```{r cross validation, results=FALSE, cache=TRUE}
-dataset_ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
-model_caret <- train(int_rate~., data = test.data.reg, trControl = dataset_ctrl, method = "lm", na.action = na.pass)  
-model_caret
-model_caret$finalModel
-
+control.reg <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
 ```
 
-```{r Bayesian Generalized Linear Model analysis regression}
-
-# Train glmnet model
-glmnet_reg <- train(defaulted ~ ., data = train.data.reg,
- method = "bayesglm",
- trControl = control.reg,
- preProc = c("zv","center","scale"))
-
-plot(glmnet_reg)
-
+```{r Linear Model analysis regression}
+fit.lm.reg <- train(int_rate~., data = test.data.reg, trControl = control.reg, method = "lm", na.action = na.pass)  
+fit.lm.reg
+fit.lm.reg$finalModel
+plot(fit.lm.reg$finalModel)
 ```
-
 
 
 ```{r stepwise model, results = FALSE, cache=TRUE, include=FALSE, eval=FALSE}
