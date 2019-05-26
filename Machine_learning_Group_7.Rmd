@@ -235,7 +235,7 @@ plot(lmp.fit)
 #removing features that do not have at least a 0.001 P value
 dataset_reg <- subset(dataset_reg, select = -c(annual_inc, dti, earliest_cr_line,total_pymnt, total_rec_prncp, total_rec_int, total_rec_late_fee, recoveries, acc_open_past_24mths, avg_cur_bal, bc_open_to_buy, delinq_amnt, mo_sin_old_rev_tl_op, mo_sin_rcnt_rev_tl_op, mort_acc, num_il_tl, pct_tl_nvr_dlq, tax_liens, total_bal_ex_mort, total_bc_limit, total_il_high_credit_limit, num_actv_bc_tl, mo_sin_rcnt_tl))
 
-# Donig a second round to see if further variables can be removed.
+# Doing a second round to see if further variables can be removed.
 summary(lmp.fit)
 lmp.fit=lm(int_rate~.,data = dataset_reg)
 
@@ -263,6 +263,15 @@ testRows = nrow(dataset_reg) - trainRows
 train.data.reg = dataset_reg[trainRows,]
 test.data.reg = dataset_reg[testRows,]
 
+
+```
+```````{r cross validation, results=FALSE, cache=TRUE}
+dataset_ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+model_caret <- train(int_rate~., data = test.data.reg, trControl = dataset_ctrl, method = "lm", na.action = na.pass)  
+model_caret
+model_caret$finalModel
+
+```
 
 ```
 
