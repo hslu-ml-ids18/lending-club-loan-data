@@ -1,5 +1,5 @@
 ---
-title: "Group 7 - Classification model for the default status"
+title: "Group 7 - Groupwork on leding club loan data 💰"
 author: "L. Becker, A. Chebatarova, A. Kandel, A.Kusche, R. Mizrak"
 date: "`r Sys.Date()`"
 output:
@@ -35,7 +35,7 @@ At this step we clear the workspace and install necessary packages for data proc
   library(pacman)
 
   # install and loading required packages
-  pacman::p_load(import, monomvn, party, dummies, ranger, data.table, rmarkdown, tidyverse, caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, pROC, class,MLmetrics, tree, car, ridge, lmridge)
+  pacman::p_load(import, monomvn, party, dummies, ranger, data.table, rmarkdown, tidyverse, caret, pls, corrplot, randomForest, foreach, plyr, tidyverse, magrittr, dplyr, tibble, doMC, pROC, class,MLmetrics, tree, car, ridge, lmridge, xgboost)
 ```
    
 
@@ -70,7 +70,7 @@ Read the subset of data from the previous step
 
 dataset <- readRDS(file = "dataset_7.Rds")
 set.seed(3452)
-dataset <- dataset[sample(1:nrow(dataset),20000),]
+dataset <- dataset[sample(1:nrow(dataset),2000),]
 
 ```  
 
@@ -155,6 +155,12 @@ Preprocess the dataset, remove colums, check for na ...
   sapply(dataset, function(col) length(unique(col)))
   
   na_count <-sapply(dataset, function(y) sum(length(which(is.na(y)))))
+  
+  #check data after processing
+  head(dataset)
+  dim(dataset)
+  str(dataset)
+  
 ```
 
 
@@ -256,66 +262,95 @@ dataset_reg <- subset(dataset_reg, select = -c(bc_util))
                   
 ```
 
-### Apply the “validation set approach” to reserve a meaningful amount of data for the test phase.
-```{r validation set approach regression, cache=TRUE}
+Stepwise Feature selection
 
-#dataset_reg <- subset(dataset_reg, select = c(int_rate, bc_util, delinq_2yrs, installment, initial_list_status, loan_status, revol_util, sub_grade, total_pymnt_inv, out_prncp, open_acc, mo_sin_rcnt_rev_tl_op, total_rec_int, pct_tl_nvr_dlq, num_il_tl))
+```{r Generalized Linear Model with Stepwise Feature Selection, cache=TRUE, eval=FALSE}
+## Read Model from file or compute it 
+if (file.exists("fit.glmStepAIC.reg.rds")) {
+   fit.bridge.reg <- readRDS("fit.glmStepAIC.reg.rds")
+} else {
+    fit.glmStepAIC.reg <- train(int_rate~.,
+                    data = dataset_reg,
+                    method = "glmStepAIC",
+                    na.action = na.pass)
+}
+fit.glmStepAIC.reg
+fit.glmStepAIC.reg$finalModel
+plot(fit.glmStepAIC.reg$finalModel)
+
+```
+
+
+Limit the dataset by stepwise feature selection
+
+```{r}
+
 dataset_reg <- subset(dataset_reg, select = c(int_rate, bc_util, delinq_2yrs, installment, initial_list_status, loan_status, revol_util, sub_grade))
 
+```
+
+
+
+### Apply the “validation set approach” to reserve a meaningful amount of data for the test phase.
+
+```{r validation set approach regression, cache=TRUE}
 # setting a seed for reproducability
 set.seed(7)
 # We randomly split our dataframe in a train and test set
-trainRows = sample(1:nrow(dataset_reg),0.5*nrow(dataset_reg))
+trainRows = sample(1:nrow(dataset_reg),0.8*nrow(dataset_reg))
 testRows = nrow(dataset_reg) - trainRows
 train.data.reg = dataset_reg[trainRows,]
-test.data.reg = dataset_reg[testRows,]
+test.data.reg = dataset_reg[-trainRows,]
 
 
 ```
+
 
 ```{r cross validation, results=FALSE, cache=TRUE}
 control.reg <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
 ```
 
 ```{r Linear Model analysis regression, cache=TRUE}
-fit.lm.reg <- train(int_rate~.,
-                    data = train.data.reg,
-                    trControl = control.reg,
-                    method = "lm",
-                    na.action = na.pass)  
+if (file.exists("fit.lm.reg.rds")) {
+   fit.lm.reg <- readRDS("fit.lm.reg.rds")
+} else {
+  fit.lm.reg <- train(int_rate~.,
+                      data = train.data.reg,
+                      trControl = control.reg,
+                      method = "lm",
+                      na.action = na.pass,
+                      preProc = c("zv","center","scale"))  
+}
 fit.lm.reg
 fit.lm.reg$finalModel
 plot(fit.lm.reg$finalModel)
+
 ```
 
-```{r Generalized Linear Model with Stepwise Feature Selection, cache=TRUE}
+Fit the a extrem gradient boosting model.
 
-fit.glmStepAIC.reg <- train(int_rate~.,
+```{r}
+
+if (file.exists("fit.egb.reg.rds")) {
+   fit.lm.reg <- readRDS("fit.egb.reg.rds")
+} else {
+    fit.egb.reg = train(int_rate~.,
                     data = train.data.reg,
                     trControl = control.reg,
-                    method = "glmStepAIC",
-                    na.action = na.pass)
-fit.glmStepAIC.reg
-fit.glmStepAIC.reg$finalModel
-plot(fit.glmStepAIC.reg$finalModel)
+                    # tuneGrid = xgbGrid, 
+                    method = "xgbTree"
+    )
+}
+saveRDS(fit.egb.reg, "fit.egb.reg.rds")
 
 ```
-```{r Bayesian Linear Ridge Regression, cache=TRUE}
 
-#fit.bridge.reg <- train(int_rate~.,
-#                    data = test.data.reg,
-#                    trControl = control.reg,
-#                    method = "bridge",
-#                    na.action = na.pass)
-#fit.bridge.reg
-#fit.bridge.reg$finalModel
-#plot(fit.bridge.reg$finalModel)
-```
+Fit the random forest model.
 
 ```{r Random Forest}
 ## Read Model from file or compute it 
 if (file.exists("fit.RF.reg.rds")) {
-   fit.bridge.reg <- readRDS("fit.RF.reg.rds")
+   fit.RF.reg <- readRDS("fit.RF.reg.rds")
 } else {
    fit.RF.reg <- train(int_rate~.,
                     data = train.data.reg,
@@ -323,7 +358,6 @@ if (file.exists("fit.RF.reg.rds")) {
                     method = "parRF",
                     na.action = na.pass)
 }
-
 
 fit.RF.reg
 fit.RF.reg$finalModel
@@ -334,11 +368,8 @@ plot(fit.RF.reg)
 # MAPE LM TEST
 MAPE(predict(fit.lm.reg, test.data.reg), test.data.reg$int_rate)
 
-# MAPE glmStepAIC TEST
-MAPE(predict(fit.glmStepAIC.reg, test.data.reg), test.data.reg$int_rate)
-
-# MAPE bridge TEST
-MAPE(predict(fit.bridge.reg, test.data.reg), test.data.reg$int_rate)
+# MAPE ExtremGradiantBoosting TEST
+MAPE(predict(fit.egb.reg, test.data.reg), test.data.reg$int_rate)
 
 # MAPE Randdom Forest TEST
 MAPE(predict(fit.RF.reg, test.data.reg), test.data.reg$int_rate)
@@ -349,11 +380,8 @@ MAPE(predict(fit.RF.reg, test.data.reg), test.data.reg$int_rate)
 # MAPE LM train
 MAPE(predict(fit.lm.reg, train.data.reg), train.data.reg$int_rate)
 
-# MAPE glmStepAIC train
-MAPE(predict(fit.glmStepAIC.reg, train.data.reg), train.data.reg$int_rate)
-
-# MAPE bridge train
-MAPE(predict(fit.bridge.reg, train.data.reg), train.data.reg$int_rate)
+# MAPE ExtremGradiantBoosting train
+MAPE(predict(fit.egb.reg, train.data.reg), train.data.reg$int_rate)
 
 # MAPE Randdom Forest train
 MAPE(predict(fit.RF.reg, train.data.reg), train.data.reg$int_rate)
@@ -568,22 +596,16 @@ confusionMatrix( predict(fit.rf.cla, test.data.cla), test.data.cla$defaulted)   
 
 ### Conceptually compare your approach with a solution existing for this problem. (Default prediction is a very well-known problem in literature).
 
-
- 
-# Summary 
-
 We first generated a subset of the orignial lending-club-loan data and saved that file. 
 
-With the new subset we started with exploratory data analysis, based on correlation matrix and, boxplots and plots we could identify importante variables and exclude correlating once. Based on the forgoing data exploration and checking the DataDescription we limited the amount of feautre. In addition we used P For case of simplicity and availalbe computation power we further had to limit the feature. W
+With the new subset we started with exploratory data analysis, based on correlation matrix and, boxplots and plots we could identify importante variables and exclude correlating once. Based on the forgoing data exploration and checking the DataDescription we limited the amount of feautre. For case of simplicity and availalbe computation power we further had to limit the features. 
 
+The toplevel approach for the default prediction refers to the CRIPS for Data Mining  <https://en.wikipedia.org/wiki/Cross-industry_standard_process_for_data_mining> and is simillar to most of the approaches found on the internet. After a general Data Preparation that is identical for the regression and classifaction task, we did the specific classification data preparation, as changing dependet variable to a 2-factor (1,0) variabble. Then the validation set approach was used to split the data into train & test data, to generally improve the model performance. With the Principal Component Analysis &  Partial Least Squares we limited the amount of features to consider. Furthermorde four different models where used ( KNN, Logistic Regression, Decision Trees, Random Forest) and the performance compared with a ROC curve. 
 
-There was a imbalance of distribution between good and defaulted loans, but so the analysis show that its helpful with machine learning techniques to predict the interast rate and proability that a loan is defaulted.
+Nevertheless the analysis shows that its helpful with machine learning techniques to predict the interast rate and proability that a loan is defaulted.
 
 ## Room for improvement
 
 In future work, natural language processing (NLP) could be used to etraxt informatcion from Loan description or the job title. 
 Feature engineering could be implemented, e. g. the zip_code could be used to determine the unemployment rate. 
-
-
-
-@ToDo
+Furthermore it would be intersting to spend more time on the performance tuning of each model, by using different parmaters for the fitting. 
