@@ -347,12 +347,6 @@ mape_bridge_test <- MAPE(predict(fit.bridge.reg, test.data.reg), test.data.reg$i
 mape_rf_test <- MAPE(predict(fit.RF.reg, test.data.reg), test.data.reg$int_rate)
 
 test_mapes <- data.frame("LM" = mape_lm_test, "glmStep"= mape_glmStepAIC_test, "Brdige"= mape_bridge_test, "Random Forest" = mape_rf_test)
-
-# plot(test_mapes,x = test_mape)
-# # ggplot(test_mapes, aes(aes(x=as.numeric(test_mapes)))) + 
-#   geom_point()
-
-
 ```
 
 ```{r Calculating TRAIN MAPE out of the models}
@@ -362,14 +356,22 @@ MAPE(predict(fit.lm.reg, train.data.reg), train.data.reg$int_rate)
 # MAPE glmStepAIC train
 MAPE(predict(fit.glmStepAIC.reg, train.data.reg), train.data.reg$int_rate)
 
-# MAPE bridge train
-MAPE(predict(fit.bridge.reg, train.data.reg), train.data.reg$int_rate)
-
 # MAPE Randdom Forest train
 MAPE(predict(fit.RF.reg, train.data.reg), train.data.reg$int_rate)
 
+train_mapes <- data.frame("LM" = mape_lm_train, "glmStep"= mape_glmStepAIC_train, "Random Forest" = mape_rf_train)
 ```
+
 ```{r compare MAPE out of the model}
+# Grouping Test and Train MAPEs
+mapes <- union(test_mapes, train_mapes)
+row.names(mapes) <- c("test", "train")
+print(mapes)
+# # Plotting the Test and Train MAPEs
+# plot(mapes)
+# 
+# {ggplot(mapes, aes(x = dataset_reg)) + 
+#   geom_point()}
 
 ```
 
@@ -578,8 +580,53 @@ confusionMatrix( predict(fit.rf.cla, test.data.cla), test.data.cla$defaulted)   
 
 ### Conceptually compare your approach with a solution existing for this problem. (Default prediction is a very well-known problem in literature).
 
+We will compare our approach to the following one:
+Forecasting Credit Default Probability
+Author: Matthew Ludwig
+Date: 11 May 2017
+URL: https://rstudio-pubs-static.s3.amazonaws.com/275340_24f229732ac04bf182ccae5fffdfb47a.html
+
+
+Repacling missing data:
+In our case missing data fro int_rate was simply removed, other variables that did have missing data we treated as follow:
+- for numericals values we dummy coded them with a '-1' in the approche.
+- for factors we replaced missing values with 'unkown'
+
+In the approache we're comparing the int_rate used a similar approache named "Missing Not At Random".
+Which basically replaced the missing int_rate value by 'Missing'
+
+Outliers:
+We kept all the outliers and did not try to get these out of our data.
+In the approache we are comparing outliers were removed. 
+ 
+Sampling:
+
+We first started with a very small subset (1000 rows) to get a hold if the models we were running were doing so correctly. In our final approache we are using 20000 rows as using any more is too computationaly intensive for the hardware we have.
+
+In the approache we are comparing too the whole dataset is of 29092 row. 20000 are used for training and 9092 are used from testing.
+
+Parameter selection 
+To find out which parameters were usefull we used a logistic regression and a stepwise regression.
+
+This helped us to select a handfull of predictors that were deemed relevant for our models based upon the p-value.
+We can see that this is the same approache that was taken by Matthew Ludwig.
+
+Testing:
+
+
 
  
+ Model:
+ 
+ We used various models to find which fit better for clasifying, namely:
+ - knn
+ - random forest
+ - logistic regression
+ - descision tree
+ 
+ The approache we are comparing to used one model which is as follows:
+ 
+ "Final_Model <- glm(loan_status ~ loan_amnt + grade + annual_inc + int_bin + emp_bin, family = "binomial", data = training)"
 # Summary 
 
 We first generated a subset of the orignial lending-club-loan data and saved that file. 
