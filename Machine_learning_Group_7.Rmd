@@ -93,21 +93,28 @@ Preprocess the dataset, remove columns, check for na ...
   
   # remove some columns because of the reasons below 
   # to many levels: zip_code, emp_title
-  # not_relevant: desc, id_2, addr_state, last_pymnt_d, next_pymnt_d, issue_d, title, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date
+  # not_relevant: desc, id_2, addr_state, last_pymnt_d, next_pymnt_d, issue_d, title,
+  #last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date,
+  #debt_settlement_flag_date, settlement_date
   # same data in every colum: policy_code
   # covariance: grade (of sub_grade)
   
-  dataset <- subset(dataset, select = -c(id_2, policy_code, desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
+  dataset <- subset(dataset, select = -c(id_2, policy_code, desc, emp_title, issue_d, title, 
+zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, 
+payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
 
   # sub_grade has more than 32 levels which is a hard limit for a Random Forest.
   # We will dummy code it to circument this
   levels_sub_grade <- levels(dataset$sub_grade)
-  dataset$sub_grade<- as.numeric(mapvalues(dataset$sub_grade, levels_sub_grade, seq(from = 1, to = 35, by = 1)))
+  dataset$sub_grade<- as.numeric(mapvalues(dataset$sub_grade, levels_sub_grade, 
+  seq(from = 1, to = 35, by = 1)))
 
   
   # sorting emp_lenght, and dummy coding.
   levels_emp_length <- levels(dataset$emp_length)
-  dataset$emp_length <- ordered(dataset$emp_length, levels = c("n/a", "< 1 year", "1 year", "2 years", "3 years","4 years", "5 years","6 years", "7 years", "8 years", "9 years", "10+ years"))
+  dataset$emp_length <- ordered(dataset$emp_length, levels = c("n/a", "< 1 year", "1 year", 
+"2 years", "3 years","4 years", "5 years","6 years", "7 years", "8 years", "9 years",
+"10+ years"))
   levels(dataset$emp_length)
   dataset$emp_length <- as.numeric(mapvalues(dataset$emp_length, levels_emp_length, c(-1, seq(from = 0, to = 10, by = 1))))
 
@@ -116,7 +123,8 @@ Preprocess the dataset, remove columns, check for na ...
   dataset$earliest_cr_line <- as.integer(substring(dataset$earliest_cr_line, 5))
   
   # grouping earliest_cr_line by year
-  dataset$sec_app_earliest_cr_line <- as.integer(substring(as.character(dataset$sec_app_earliest_cr_line), 5))
+  dataset$sec_app_earliest_cr_line <-   
+  as.integer(substring(as.character(dataset$sec_app_earliest_cr_line), 5))
   dataset$sec_app_earliest_cr_line[is.na(dataset$sec_app_earliest_cr_line)] <- -1
   typeof(dataset$sec_app_earliest_cr_line)
   
@@ -197,7 +205,8 @@ corrplot(mcor, type="upper", sig.level = 0.001, insig = "blank",number.font = 0)
 # plotting the loan amount vs the term
 {ggplot(data = dataset_reg, mapping = aes(term, int_rate)) +
   geom_boxplot()}
-# Here we can see that the interest rate is generaly higher for 60 months loans and lower for 36 months loans.
+# Here we can see that the interest rate is generaly higher for 60 months loans and lower 
+#for 36 months loans.
 ```
 
 ```{r Data Exploration - interest rate vs grade}
@@ -231,7 +240,10 @@ summary(lmp.fit)
 plot(lmp.fit)
 
 #removing features that do not have at least a 0.001 P value
-dataset_reg <- subset(dataset_reg, select = -c(annual_inc, dti, earliest_cr_line,total_pymnt, total_rec_prncp, total_rec_int, total_rec_late_fee, recoveries, acc_open_past_24mths, avg_cur_bal, bc_open_to_buy, delinq_amnt, mo_sin_old_rev_tl_op, mo_sin_rcnt_rev_tl_op, mort_acc, num_il_tl, pct_tl_nvr_dlq, tax_liens, total_bal_ex_mort, total_bc_limit, total_il_high_credit_limit, num_actv_bc_tl, mo_sin_rcnt_tl))
+dataset_reg <- subset(dataset_reg, select = -c(annual_inc, dti, earliest_cr_line,total_pymnt, 
+total_rec_prncp, total_rec_int, total_rec_late_fee, recoveries, acc_open_past_24mths, avg_cur_bal, 
+bc_open_to_buy, delinq_amnt, mo_sin_old_rev_tl_op, mo_sin_rcnt_rev_tl_op, mort_acc, num_il_tl, pct_tl_nvr_dlq, 
+tax_liens, total_bal_ex_mort, total_bc_limit, total_il_high_credit_limit, num_actv_bc_tl, mo_sin_rcnt_tl))
 
 # Doing a second round to see if further variables can be removed.
 summary(lmp.fit)
@@ -269,15 +281,16 @@ fit.glmStepAIC.reg
 fit.glmStepAIC.reg$finalModel
 plot(fit.glmStepAIC.reg$finalModel)
 # Here we can see the features that are significant in terms of p value.
-# In addition these are sorted in terms of importance. Meaning that the most important feature explaining most of the variance will comme first.
+# In addition these are sorted in terms of importance. Meaning that the most important 
+# feature explaining most of the variance will comme first.
 ```
 
 
 Limit the dataset by stepwise feature selection
 
 ```{r}
-# Here we select the features that were deemed important either by the lm or the setpwise feature selection
-# for estimating the interest rate. 
+# Here we select the features that were deemed important either by the lm or the setpwise 
+#feature selection for estimating the interest rate. 
 dataset_reg <- subset(dataset_reg, select = c(int_rate, bc_util, delinq_2yrs, installment, initial_list_status, loan_status, revol_util, sub_grade))
 
 ```
@@ -392,7 +405,9 @@ train_mapes <- data.frame("LM" = mape_lm_train, "egb"= mape_egb_train, "Random F
 mapes <- union(test_mapes, train_mapes)
 row.names(mapes) <- c("test", "train")
 print(mapes)
-#As we can see from the table, Random Forest provides us with the lowest value of MAPE for both train and test sets, so we assume that Random Forest is the most accurate model from those being used here to predict interest rate.
+#As we can see from the table, Random Forest provides us with the lowest value of MAPE
+#for both train and test sets, so we assume that Random Forest is the most accurate
+#model from those being used here to predict interest rate.
 ```
 
 \pagebreak 
@@ -434,7 +449,7 @@ table(dataset_cla$defaulted)
 
 ### Create a validation set. 
 
-```{r validation set approach classification}
+```{r validation set approach classification, cache=TRUE}
 # setting a seed for reproducability
 set.seed(7)
 
@@ -447,7 +462,7 @@ test.data.cla  <- dataset_cla[-trainIndex,]
 ```
 ## Data Exploration
 
-```{r Data Exploration Classification defaulted int_rate}
+```{r Data Exploration Classification defaulted int_rate, cache=TRUE}
 {ggplot(data = dataset_cla, mapping = aes(defaulted, int_rate)) +
     geom_boxplot()}
 # We can see that credits who defaulted generally have a higher int_rate
@@ -459,7 +474,7 @@ Now we can go over to do the analysis on the dataset. Therefore we use different
 
 ### Use Principal Component Analysis for base transformation and then compare it with the Partial Least Squares Regression result. Select the best base with cross validation, using the better of the two approaches.
 
-```{r cross-validation Classification}
+```{r cross-validation Classification, cache=TRUE}
 # Compile cross-validation settings
 set.seed(100)
 myfolds.cla <- createMultiFolds(train.data.cla, k = 5, times = 10)
@@ -469,7 +484,7 @@ control.cla <- trainControl("repeatedcv", index = myfolds.cla, selectionFunction
 
 Perform Partial Least Squares Regression with caret package, to have a standardized handling.
 
-```{r PLS analysis}
+```{r PLS analysis, cache=TRUE}
 # Train PLS model
 fit.pls.cla <- train(defaulted ~ ., data = train.data.cla,
  method = "pls",
@@ -484,7 +499,7 @@ plot(fit.pls.cla)
 
 Perform Principal Component Analysis with caret package, to have a standardized handling.
 
-```{r PCA analysis}
+```{r PCA analysis, cache=TRUE}
 # Train PCA-DA
 fit.lda.cla <- train(defaulted ~ ., data = train.data.cla,
 method = "lda",
@@ -495,7 +510,7 @@ preProc = c("zv","center","scale","pca"))
 
 Compile models and compare performance
 
-```{r, message=FALSE, warning=FALSE, results="hide"}
+```{r, message=FALSE, warning=FALSE, results="hide", cache=TRUE}
 
 models <- resamples(list("PLS-DA" = fit.pls.cla, "PCA-DA" = fit.lda.cla))
 bwplot(models, metric = "Accuracy")
@@ -506,18 +521,22 @@ plot(varImp(fit.pls.cla), fit.pls.cla$bestTune$ncomp, main = "PLS-DA")
 
 
 
-```{r, eval=FALSE, results="hide"}
+```{r, eval=FALSE, results="hide", cache=TRUE}
 # limiting the variables of the dataset based on the results from PLS analysis in the step before
 
-train.data.cla <- subset(train.data.cla, select = c(defaulted, total_rec_prncp, recoveries, collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term))
-test.data.cla  <- subset(test.data.cla, select = c(defaulted, total_rec_prncp, recoveries, collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term))
+train.data.cla <- subset(train.data.cla, select = c(defaulted, total_rec_prncp, recoveries, 
+collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, 
+sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term))
+test.data.cla  <- subset(test.data.cla, select = c(defaulted, total_rec_prncp, recoveries, 
+collection_recovery_fee, last_pymnt_amnt, total_pymnt_inv, total_pymnt, debt_settlement_flag, 
+sub_grade, int_rate, out_prncp, out_prncp_inv, settlement_status, term))
 ```
 
 ### Perform the classification using KNN, Logistic Regression, Decision Tree and Random Forest.
 
 Train a model with KNN
 
-```{r Perform KNN with caret}
+```{r Perform KNN with caret, cache=TRUE}
 ## knn
 fit.knn.cla  <- train(defaulted ~ ., 
                 data = train.data.cla, 
@@ -530,7 +549,7 @@ fit.knn.cla  <- train(defaulted ~ .,
 
 Train a model with Logistic Regression
 
-```{r Perform Logistic Regression with caret, message=FALSE, warning=FALSE}
+```{r Perform Logistic Regression with caret, message=FALSE, warning=FALSE, cache=TRUE}
 ## logistic regression
 fit.lreg.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp 
 + last_pymnt_amnt + total_pymnt, 
@@ -545,7 +564,7 @@ fit.lreg.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_re
 
 Train a model with Decision Trees
 
-```{r Perform Decision tree with caret}
+```{r Perform Decision tree with caret, cache=TRUE}
 ## decision tree 
 fit.dtree.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp 
 + last_pymnt_amnt + total_pymnt, 
@@ -557,7 +576,7 @@ fit.dtree.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_r
 
 Train a model with Random Forest
 
-```{r Perform Random Forest with caret}
+```{r Perform Random Forest with caret, cache=TRUE}
 ## random forest 
 fit.rf.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_prncp 
 + last_pymnt_amnt + total_pymnt, 
@@ -569,7 +588,9 @@ fit.rf.cla <-train(defaulted ~ recoveries + collection_recovery_fee + total_rec_
 
 ### Compare the respective train and test error performances to select one of these approaches.
 
-```{r ROC Plot}
+From the perspective of LC it is very important to identify high-risk individuals. The company might particularly wish to avoid incorrectly classifying an individual who will default. If we take this into account the model with the highest specificity, in this case Logistic Regression, might be the best model.
+
+```{r ROC Plot, cache=TRUE}
 par(pty = "s")
 roc(test.data.cla$defaulted, as.numeric(predict(fit.dtree.cla, 
 test.data.cla)), plot=TRUE, legacy.axes=TRUE, 
@@ -594,7 +615,7 @@ plot.roc(test.data.cla$defaulted, as.numeric(predict(fit.knn.cla, test.data.cla)
 
 ### Perform the prediction on the validation set and compute the confusion matrix.
 
-```{r Perform Confusion Matrix for each method}
+```{r Perform Confusion Matrix for each method, cache=TRUE}
 
 #Confusion Matrix KNN
 confusionMatrix( predict(fit.knn.cla, test.data.cla), test.data.cla$defaulted)    #Test
