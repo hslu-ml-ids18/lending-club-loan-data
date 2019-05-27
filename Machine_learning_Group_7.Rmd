@@ -255,6 +255,7 @@ dataset_reg <- subset(dataset_reg, select = -c(bc_util))
 Stepwise Feature selection
 
 ```{r Generalized Linear Model with Stepwise Feature Selection, cache=TRUE, eval=FALSE}
+# We run a linear model in order to check for which features are relevant in terms of P value.
 ## Read Model from file or compute it 
 if (file.exists("fit.glmStepAIC.reg.rds")) {
    fit.bridge.reg <- readRDS("fit.glmStepAIC.reg.rds")
@@ -267,14 +268,16 @@ if (file.exists("fit.glmStepAIC.reg.rds")) {
 fit.glmStepAIC.reg
 fit.glmStepAIC.reg$finalModel
 plot(fit.glmStepAIC.reg$finalModel)
-
+# Here we can see the features that are significant in terms of p value.
+# In addition these are sorted in terms of importance. Meaning that the most important feature explaining most of the variance will comme first.
 ```
 
 
 Limit the dataset by stepwise feature selection
 
 ```{r}
-
+# Here we select the features that were deemed important either by the lm or the setpwise feature selection
+# for estimating the interest rate. 
 dataset_reg <- subset(dataset_reg, select = c(int_rate, bc_util, delinq_2yrs, installment, initial_list_status, loan_status, revol_util, sub_grade))
 
 ```
@@ -297,10 +300,13 @@ test.data.reg = dataset_reg[-trainRows,]
 
 
 ```{r cross validation, results=FALSE, cache=TRUE}
+# Here we setup k-Fold Cross Validation: we do 10 folds and repeat the proceedure 3 times.
 control.reg <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
 ```
 
 ```{r Linear Model analysis regression, cache=TRUE}
+# We will use a linear model again but this time for predicting the interest_rate.
+## Read Model from file or compute it 
 if (file.exists("fit.lm.reg.rds")) {
    fit.lm.reg <- readRDS("fit.lm.reg.rds")
 } else {
@@ -319,8 +325,9 @@ plot(fit.lm.reg$finalModel)
 
 Fit the a extreme gradient boosting model.
 
-```{r}
-
+```{r regression extreme gradient boosting}
+# We will use an extreme gradient boosting for predicting the interest_rate.
+## Read Model from file or compute it 
 if (file.exists("fit.egb.reg.rds")) {
    fit.egb.reg <- readRDS("fit.egb.reg.rds")
 } else {
@@ -335,7 +342,8 @@ if (file.exists("fit.egb.reg.rds")) {
 
 Fit the random forest model.
 
-```{r Random Forest}
+```{r regression Random Forest}
+# We will use a Random Forestg for predicting the interest_rate.
 ## Read Model from file or compute it 
 if (file.exists("fit.RF.reg.rds")) {
    fit.RF.reg <- readRDS("fit.RF.reg.rds")
@@ -462,7 +470,6 @@ control.cla <- trainControl("repeatedcv", index = myfolds.cla, selectionFunction
 Perform Partial Least Squares Regression with caret package, to have a standardized handling.
 
 ```{r PLS analysis}
-
 # Train PLS model
 fit.pls.cla <- train(defaulted ~ ., data = train.data.cla,
  method = "pls",
@@ -478,7 +485,7 @@ plot(fit.pls.cla)
 Perform Principal Component Analysis with caret package, to have a standardized handling.
 
 ```{r PCA analysis}
-# PCA-DA
+# Train PCA-DA
 fit.lda.cla <- train(defaulted ~ ., data = train.data.cla,
 method = "lda",
 metric = "Accuracy",
