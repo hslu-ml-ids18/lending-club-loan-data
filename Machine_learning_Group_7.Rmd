@@ -91,7 +91,7 @@ Preprocess the dataset, remove columns, check for na ...
   # Removing columns that have > 0.05 NAs
   dataset <- dataset[, -which(colMeans(is.na(dataset)) > 0.05)]
   
-  # remove some columsn because of the reasons below 
+  # remove some columns because of the reasons below 
   # to many levels: zip_code, emp_title
   # not_relevant: desc, id_2, addr_state, last_pymnt_d, next_pymnt_d, issue_d, title, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date
   # same data in every colum: policy_code
@@ -125,16 +125,16 @@ Preprocess the dataset, remove columns, check for na ...
   # changing the dataset as a tbl object.
   dataset <- as.tbl(dataset)
   
-  # change NAs to 0 in integer columns
+  # change NAs to -1 in integer columns
   dataset <- mutate_if(dataset, is.integer, ~replace(., is.na(.), -1))
   
-  # change NAs to 0 in doubles columns
+  # change NAs to -1 in numeric columns
     dataset <- mutate_if(dataset, is.numeric, ~replace(., is.na(.), -1))
   
-    # change NAs to 0 in strings columns
-    dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
+  # change Missing values to "NA" in strings columns
+  dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
   
-  # change NAs to 0 in strings columns
+  # change Missing Values to "NA" in strings columns
     dataset <- mutate_if(dataset, is.factor, ~replace(., is.na(.), "NA"))
   
  
