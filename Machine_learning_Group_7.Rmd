@@ -10,7 +10,7 @@ output:
 
 # Introduction
 
-Our data comes from Lending Club (LC) which is a peer-to-peer online lending platform. The data contains information on the loans issued by LC including the details of the loans such as loan description, interest rate applied, if the debt was fully paid, date of last payment etc. Our goal is to find appropriate models for predicting interest rate for each request, as well as perform classification model for setting reliable default status.
+Our data comes from Lending Club (LC) which is a peer-to-peer online lending platform. The data contains information on the loans issued by LC including the details of the loans such as loan description, interest rate applied, if the debt was fully paid, date of last payment etc. Our goal is to find appropriate models for predicting interest rates for each request, as well as perform a classification model for setting reliable default status.
 
 URL to source data: https://kaggle.com/wendykan/lending-club-loan-data
 
@@ -19,7 +19,7 @@ Required steps:
 - Initialization of the environment. 
 - Data exploration through data visualization which helps to understand our dataset and its characteristics.
 - Data preprocessing which includes omitting unnecessary columns, sorting and grouping, reformatting and other actions required for making our data adequate for performing further analysis and modeling.
-- Part 1: Regression Analysis - we get into details with our data to define meaningful amount of data, rational predictors, check correlations and determine models for prediction of interest rate and validate them.
+- Part 1: Regression Analysis - we get into details with our data to define a meaningful amount of data, rational predictors, check correlations and determine models for prediction of interest rate and validate them.
  
 - Part 2 - Classification Analysis - we take a step back in order to be sure that all necessary variables are included into our analysis, perform required transformations, define the models, check the errors and validate the results. 
 - Summary 
@@ -85,7 +85,7 @@ Preprocess the dataset, remove columns, check for na ...
 
 ```{r message=FALSE, warning=FALSE}
   
-  # sort dataset by colunm names, to facilite search
+  # sort dataset by column names, to facilite search
   dataset = dataset[ , order(names(dataset))]
   
   # Removing columns that have > 0.05 NAs
@@ -99,8 +99,8 @@ Preprocess the dataset, remove columns, check for na ...
   
   dataset <- subset(dataset, select = -c(id_2, policy_code, desc, emp_title, issue_d, title, zip_code, last_pymnt_d, next_pymnt_d, last_credit_pull_d, hardship_end_date, hardship_start_date, payment_plan_start_date, debt_settlement_flag_date, settlement_date, addr_state, grade) )
 
-  # sub_grade has more than 32 levels which is a hard limit for random forest.
-  # We'll dummy code it to circument this
+  # sub_grade has more than 32 levels which is a hard limit for a Random Forest.
+  # We will dummy code it to circument this
   levels_sub_grade <- levels(dataset$sub_grade)
   dataset$sub_grade<- as.numeric(mapvalues(dataset$sub_grade, levels_sub_grade, seq(from = 1, to = 35, by = 1)))
 
@@ -131,10 +131,10 @@ Preprocess the dataset, remove columns, check for na ...
   # change NAs to -1 in numeric columns
     dataset <- mutate_if(dataset, is.numeric, ~replace(., is.na(.), -1))
   
-  # change Missing values to "NA" in strings columns
+  # change missing values to "NA" in strings columns
   dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
   
-  # change Missing Values to "NA" in strings columns
+  # change missing Values to "NA" in strings columns
     dataset <- mutate_if(dataset, is.factor, ~replace(., is.na(.), "NA"))
   
  
@@ -156,7 +156,7 @@ Preprocess the dataset, remove columns, check for na ...
 # Part 1 - Regression Analysis
 
 ## Preparatory tasks:
-### Create a copy of your dataset, eliminating the entries that have an “na” in the interest rate variable int_rate. (Interest rate is used as output variable).
+### Create a copy of your dataset, eliminating the entries that have an “na” in the interest rate variable int_rate. (Interest rate is used as output variable)
 ## Initialization
 
 ```{r preprocessing, echo=TRUE}
@@ -402,7 +402,7 @@ For the remaining observations, we check if the loan_status is “Fully Paid”.
 # set dataset as data.table::datatable
 setDT(dataset)
 
-# filter out all observations with loan_status == Current and storing it in a separate Data
+# filter out all observations with loan_status == Current and storing it in a separate set
 dataset_cla <- dataset[loan_status != 'Current']
 
 # change all the loan status that are not "Fully Paid" to 1
@@ -459,7 +459,7 @@ control.cla <- trainControl("repeatedcv", index = myfolds.cla, selectionFunction
  
 ```
 
-Perform Partial Least Squares Regression with caret package, to have a standartized handling.
+Perform Partial Least Squares Regression with caret package, to have a standardized handling.
 
 ```{r PLS analysis}
 
@@ -475,7 +475,7 @@ plot(fit.pls.cla)
 
 ```
 
-Perform Principal Component Analysis with caret package, to have a standartized handling.
+Perform Principal Component Analysis with caret package, to have a standardized handling.
 
 ```{r PCA analysis}
 # PCA-DA
@@ -614,11 +614,11 @@ URL: <https://rstudio-pubs-static.s3.amazonaws.com/275340_24f229732ac04bf182ccae
 
 
 Replacing missing data:
-In our case missing data for int_rate was simply removed, other variables that did have missing data we treated as follows:
+In our case missing data for int_rate was simply removed, other variables that did have missing data, we treated as follows:
 - for numericals values we dummy coded them with a '-1' in the approach.
 - for factors we replaced missing values with 'unknown'
 
-In the approach we're comparing the int_rate used a similar approach named "Missing Not At Random".
+In the approach we are comparing the int_rate used a similar approach named "Missing Not At Random".
 Which basically replaced the missing int_rate value by 'Missing'
 
 Outliers:
@@ -634,7 +634,7 @@ In the approach we are comparing to the whole dataset is of 29092 row. 20000 are
 Parameter selection 
 To find out which parameters were useful, we used a logistic regression and a stepwise regression.
 
-This helped us to select a handful set of predictors that were deemed relevant for our models based upon the p-value.
+This helped us to select a handful of predictors that were deemed relevant for our models based upon the p-value.
 We can see that this is the same approach that was taken by Matthew Ludwig.
 
 Testing:
@@ -650,14 +650,14 @@ We used a crossvalidation set approach, and splitted the data in a ratio of 80/2
  - logistic regression
  - descision tree
  
- The approach we are comparing to used one model which is as follows:
+ The approach we are comparing to the used one model which is as follows:
  
  "Final_Model <- glm(loan_status ~ loan_amnt + grade + annual_inc + int_bin + emp_bin, family = "binomial", data = training)"
 # Summary 
 
 We first generated a subset of the original lending-club-loan data and saved that file. 
 
-With the new subset we started with exploratory data analysis, based on correlation matrix and, boxplots and plots we could identify important variables and exclude correlating ones. Based on the forgoing data exploration and checking the DataDescription we limited the amount of feautres. For case of simplicity and available computation power we further had to limit the features once again. 
+With the new subset we started with exploratory data analysis, based on correlation matrix and, boxplots and plots we could identify important variables and exclude correlating ones. Based on the forgoing data exploration and checking the DataDescription we limited the amount of features. For case of simplicity and available computation power we further had to limit the features once again. 
 
 The toplevel approach for the default prediction refers to the CRIPS for Data Mining  <https://en.wikipedia.org/wiki/Cross-industry_standard_process_for_data_mining> and is similar to most of the approaches found on the internet. After a general Data Preparation that is identical for the regression and classifiction task, we did the specific classification data preparation, as changing dependent variable to a 2-factor (1,0) variable. Then the validation set approach was used to split the data into train & test data, to generally improve the model performance. With the Principal Component Analysis &  Partial Least Squares we limited the amount of features to consider. Furthermore four different models were used (KNN, Logistic Regression, Decision Trees, Random Forest) and the performance compared with a ROC curve. 
 
@@ -667,4 +667,4 @@ Nevertheless, the analysis shows that it's helpful with machine learning techniq
 
 In future work, natural language processing (NLP) could be used to extract informatcion from Loan description or the job title. 
 Feature engineering could be implemented, e. g. the zip_code could be used to determine the unemployment rate. 
-Furthermore it would be interesting to spend more time on the performance tuning of each model, by using different parameters for the fitting. 
+Furthermore, it would be interesting to spend more time on the performance tuning of each model by using different parameters for the fitting. 
