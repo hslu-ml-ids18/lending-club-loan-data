@@ -81,7 +81,7 @@ dataset <- dataset[sample(1:nrow(dataset),20000),]
 
 # Data Preprocessing 
 
-Preprocess the dataset, remove colums, check for na ... 
+Preprocess the dataset, remove columns, check for na ... 
 
 ```{r message=FALSE, warning=FALSE}
   
@@ -124,23 +124,20 @@ Preprocess the dataset, remove colums, check for na ...
   
   # changing the dataset as a tbl object.
   dataset <- as.tbl(dataset)
+  
   # change NAs to 0 in integer columns
   dataset <- mutate_if(dataset, is.integer, ~replace(., is.na(.), -1))
+  
   # change NAs to 0 in doubles columns
+    dataset <- mutate_if(dataset, is.numeric, ~replace(., is.na(.), -1))
   
-  dataset <- mutate_if(dataset, is.numeric, ~replace(., is.na(.), -1))
+    # change NAs to 0 in strings columns
+    dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
+  
   # change NAs to 0 in strings columns
+    dataset <- mutate_if(dataset, is.factor, ~replace(., is.na(.), "NA"))
   
-  dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
-  
-  # change NAs to 0 in strings columns
-  
-  dataset <- mutate_if(dataset, is.factor, ~replace(., is.na(.), "NA"))
-  
-   # 
-  dataset <- mutate_if(dataset, is.character, ~replace(., is.na(.), "NA"))
-  # 
-  
+ 
   # calculating the number of unique levels per column
   sapply(dataset, function(col) length(unique(col)))
   
@@ -221,7 +218,7 @@ corrplot(mcor, type="upper", sig.level = 0.001, insig = "blank",number.font = 0)
 # plotting the loan amount vs verification_status
 {ggplot(data = dataset_reg, mapping = aes(factor(verification_status), int_rate), group = 2) +
   geom_boxplot()}
-# The verification_status seems to also have an correlation with the interest rate.
+# The verification_status seems to also have correlation with the interest rate.
 
 ```
 
@@ -232,6 +229,7 @@ lmp.fit=lm(int_rate~.,data = dataset_reg)
 
 summary(lmp.fit)
 plot(lmp.fit)
+
 #removing features that do not have at least a 0.001 P value
 dataset_reg <- subset(dataset_reg, select = -c(annual_inc, dti, earliest_cr_line,total_pymnt, total_rec_prncp, total_rec_int, total_rec_late_fee, recoveries, acc_open_past_24mths, avg_cur_bal, bc_open_to_buy, delinq_amnt, mo_sin_old_rev_tl_op, mo_sin_rcnt_rev_tl_op, mort_acc, num_il_tl, pct_tl_nvr_dlq, tax_liens, total_bal_ex_mort, total_bc_limit, total_il_high_credit_limit, num_actv_bc_tl, mo_sin_rcnt_tl))
 
@@ -358,7 +356,7 @@ plot(fit.RF.reg)
 # MAPE LM TEST
 mape_lm_test <- MAPE(predict(fit.lm.reg, test.data.reg), test.data.reg$int_rate)
 
-# MAPE ExtremGradiantBoosting TEST
+# MAPE ExtremeGradiantBoosting TEST
 mape_egb_test <- MAPE(predict(fit.egb.reg, test.data.reg), test.data.reg$int_rate)
 
 # MAPE Random Forest TEST
@@ -375,7 +373,7 @@ mape_lm_train <- MAPE(predict(fit.lm.reg, train.data.reg), train.data.reg$int_ra
 # MAPE ExtremGradiantBoosting train
 mape_egb_train <- MAPE(predict(fit.egb.reg, train.data.reg), train.data.reg$int_rate)
 
-# MAPE Randdom Forest train
+# MAPE Random Forest train
 mape_rf_train <- MAPE(predict(fit.RF.reg, train.data.reg), train.data.reg$int_rate)
 
 train_mapes <- data.frame("LM" = mape_lm_train, "egb"= mape_egb_train, "Random Forest" = mape_rf_train)
@@ -386,7 +384,7 @@ train_mapes <- data.frame("LM" = mape_lm_train, "egb"= mape_egb_train, "Random F
 mapes <- union(test_mapes, train_mapes)
 row.names(mapes) <- c("test", "train")
 print(mapes)
-
+#As we can see from the table, Random Forest provides us with the lowest value of MAPE for both train and test sets, so we assume that Random Forest is the most accurate model from those being used here to predict interest rate.
 ```
 
 \pagebreak 
@@ -663,7 +661,7 @@ With the new subset we started with exploratory data analysis, based on correlat
 
 The toplevel approach for the default prediction refers to the CRIPS for Data Mining  <https://en.wikipedia.org/wiki/Cross-industry_standard_process_for_data_mining> and is similar to most of the approaches found on the internet. After a general Data Preparation that is identical for the regression and classifiction task, we did the specific classification data preparation, as changing dependent variable to a 2-factor (1,0) variable. Then the validation set approach was used to split the data into train & test data, to generally improve the model performance. With the Principal Component Analysis &  Partial Least Squares we limited the amount of features to consider. Furthermore four different models were used (KNN, Logistic Regression, Decision Trees, Random Forest) and the performance compared with a ROC curve. 
 
-Nevertheless, the analysis shows that it's helpful with machine learning techniques to predict the interest rate and probability that a loan is defaulted. For us the logistic regression has the best results. At the ROC curve, we get the best true positive vs false postive ratio. 
+Nevertheless, the analysis shows that it's helpful with machine learning techniques to predict the interest rate and probability that a loan is defaulted. For us the Random Forest works the best for interest rate prediction while logistic regression has the best results for predicting default status. At the ROC curve, we get the best true positive vs false postive ratio. 
 
 ## Room for improvement
 

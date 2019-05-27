@@ -122,7 +122,7 @@
   \postauthor{\par}
       \predate{\centering\large\emph}
   \postdate{\par}
-    \date{2019-05-26}
+    \date{2019-05-27}
 
 
 \begin{document}
@@ -247,7 +247,7 @@ Read the subset of data from the previous step
 \hypertarget{data-preprocessing}{%
 \section{Data Preprocessing}\label{data-preprocessing}}
 
-Preprocess the dataset, remove colums, check for na \ldots{}
+Preprocess the dataset, remove columns, check for na \ldots{}
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -309,23 +309,20 @@ Preprocess the dataset, remove colums, check for na \ldots{}
   
   \CommentTok{# changing the dataset as a tbl object.}
 \NormalTok{  dataset <-}\StringTok{ }\KeywordTok{as.tbl}\NormalTok{(dataset)}
+  
   \CommentTok{# change NAs to 0 in integer columns}
 \NormalTok{  dataset <-}\StringTok{ }\KeywordTok{mutate_if}\NormalTok{(dataset, is.integer, }\OperatorTok{~}\KeywordTok{replace}\NormalTok{(., }\KeywordTok{is.na}\NormalTok{(.), }\DecValTok{-1}\NormalTok{))}
+  
   \CommentTok{# change NAs to 0 in doubles columns}
+\NormalTok{    dataset <-}\StringTok{ }\KeywordTok{mutate_if}\NormalTok{(dataset, is.numeric, }\OperatorTok{~}\KeywordTok{replace}\NormalTok{(., }\KeywordTok{is.na}\NormalTok{(.), }\DecValTok{-1}\NormalTok{))}
   
-\NormalTok{  dataset <-}\StringTok{ }\KeywordTok{mutate_if}\NormalTok{(dataset, is.numeric, }\OperatorTok{~}\KeywordTok{replace}\NormalTok{(., }\KeywordTok{is.na}\NormalTok{(.), }\DecValTok{-1}\NormalTok{))}
+    \CommentTok{# change NAs to 0 in strings columns}
+\NormalTok{    dataset <-}\StringTok{ }\KeywordTok{mutate_if}\NormalTok{(dataset, is.character, }\OperatorTok{~}\KeywordTok{replace}\NormalTok{(., }\KeywordTok{is.na}\NormalTok{(.), }\StringTok{"NA"}\NormalTok{))}
+  
   \CommentTok{# change NAs to 0 in strings columns}
+\NormalTok{    dataset <-}\StringTok{ }\KeywordTok{mutate_if}\NormalTok{(dataset, is.factor, }\OperatorTok{~}\KeywordTok{replace}\NormalTok{(., }\KeywordTok{is.na}\NormalTok{(.), }\StringTok{"NA"}\NormalTok{))}
   
-\NormalTok{  dataset <-}\StringTok{ }\KeywordTok{mutate_if}\NormalTok{(dataset, is.character, }\OperatorTok{~}\KeywordTok{replace}\NormalTok{(., }\KeywordTok{is.na}\NormalTok{(.), }\StringTok{"NA"}\NormalTok{))}
-  
-  \CommentTok{# change NAs to 0 in strings columns}
-  
-\NormalTok{  dataset <-}\StringTok{ }\KeywordTok{mutate_if}\NormalTok{(dataset, is.factor, }\OperatorTok{~}\KeywordTok{replace}\NormalTok{(., }\KeywordTok{is.na}\NormalTok{(.), }\StringTok{"NA"}\NormalTok{))}
-  
-   \CommentTok{# }
-\NormalTok{  dataset <-}\StringTok{ }\KeywordTok{mutate_if}\NormalTok{(dataset, is.character, }\OperatorTok{~}\KeywordTok{replace}\NormalTok{(., }\KeywordTok{is.na}\NormalTok{(.), }\StringTok{"NA"}\NormalTok{))}
-  \CommentTok{# }
-  
+ 
   \CommentTok{# calculating the number of unique levels per column}
   \KeywordTok{sapply}\NormalTok{(dataset, }\ControlFlowTok{function}\NormalTok{(col) }\KeywordTok{length}\NormalTok{(}\KeywordTok{unique}\NormalTok{(col)))}
 \end{Highlighting}
@@ -684,7 +681,7 @@ representation.}\label{compute-the-correlation-matrix-for-the-selected-set-of-pr
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{# The verification_status seems to also have an correlation with the interest rate.}
+\CommentTok{# The verification_status seems to also have correlation with the interest rate.}
 \end{Highlighting}
 \end{Shaded}
 
@@ -695,6 +692,7 @@ representation.}\label{compute-the-correlation-matrix-for-the-selected-set-of-pr
 
 \KeywordTok{summary}\NormalTok{(lmp.fit)}
 \KeywordTok{plot}\NormalTok{(lmp.fit)}
+
 \CommentTok{#removing features that do not have at least a 0.001 P value}
 \NormalTok{dataset_reg <-}\StringTok{ }\KeywordTok{subset}\NormalTok{(dataset_reg, }\DataTypeTok{select =} \OperatorTok{-}\KeywordTok{c}\NormalTok{(annual_inc, dti, earliest_cr_line,total_pymnt, total_rec_prncp, total_rec_int, total_rec_late_fee, recoveries, acc_open_past_24mths, avg_cur_bal, bc_open_to_buy, delinq_amnt, mo_sin_old_rev_tl_op, mo_sin_rcnt_rev_tl_op, mort_acc, num_il_tl, pct_tl_nvr_dlq, tax_liens, total_bal_ex_mort, total_bc_limit, total_il_high_credit_limit, num_actv_bc_tl, mo_sin_rcnt_tl))}
 
@@ -955,7 +953,7 @@ Fit the random forest model.
 \CommentTok{# MAPE LM }\AlertTok{TEST}
 \NormalTok{mape_lm_test <-}\StringTok{ }\KeywordTok{MAPE}\NormalTok{(}\KeywordTok{predict}\NormalTok{(fit.lm.reg, test.data.reg), test.data.reg}\OperatorTok{$}\NormalTok{int_rate)}
 
-\CommentTok{# MAPE ExtremGradiantBoosting }\AlertTok{TEST}
+\CommentTok{# MAPE ExtremeGradiantBoosting }\AlertTok{TEST}
 \NormalTok{mape_egb_test <-}\StringTok{ }\KeywordTok{MAPE}\NormalTok{(}\KeywordTok{predict}\NormalTok{(fit.egb.reg, test.data.reg), test.data.reg}\OperatorTok{$}\NormalTok{int_rate)}
 
 \CommentTok{# MAPE Random Forest }\AlertTok{TEST}
@@ -973,7 +971,7 @@ Fit the random forest model.
 \CommentTok{# MAPE ExtremGradiantBoosting train}
 \NormalTok{mape_egb_train <-}\StringTok{ }\KeywordTok{MAPE}\NormalTok{(}\KeywordTok{predict}\NormalTok{(fit.egb.reg, train.data.reg), train.data.reg}\OperatorTok{$}\NormalTok{int_rate)}
 
-\CommentTok{# MAPE Randdom Forest train}
+\CommentTok{# MAPE Random Forest train}
 \NormalTok{mape_rf_train <-}\StringTok{ }\KeywordTok{MAPE}\NormalTok{(}\KeywordTok{predict}\NormalTok{(fit.RF.reg, train.data.reg), train.data.reg}\OperatorTok{$}\NormalTok{int_rate)}
 
 \NormalTok{train_mapes <-}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(}\StringTok{"LM"}\NormalTok{ =}\StringTok{ }\NormalTok{mape_lm_train, }\StringTok{"egb"}\NormalTok{=}\StringTok{ }\NormalTok{mape_egb_train, }\StringTok{"Random Forest"}\NormalTok{ =}\StringTok{ }\NormalTok{mape_rf_train)}
@@ -994,6 +992,12 @@ Fit the random forest model.
 ## test  0.05465464 0.05131145    0.04796991
 ## train 0.05259790 0.04917651    0.03103895
 \end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#As we can see from the table, Random Forest provides us with the lowest value of MAPE for both train and test sets, so we assume that Random Forest is the most accurate model from those being used here to predict interest rate.}
+\end{Highlighting}
+\end{Shaded}
 
 \pagebreak
 
@@ -1507,8 +1511,10 @@ compared with a ROC curve.
 
 Nevertheless, the analysis shows that it's helpful with machine learning
 techniques to predict the interest rate and probability that a loan is
-defaulted. For us the logistic regression has the best results. At the
-ROC curve, we get the best true positive vs false postive ratio.
+defaulted. For us the Random Forest works the best for interest rate
+prediction while logistic regression has the best results for predicting
+default status. At the ROC curve, we get the best true positive vs false
+postive ratio.
 
 \hypertarget{room-for-improvement}{%
 \subsection{Room for improvement}\label{room-for-improvement}}
